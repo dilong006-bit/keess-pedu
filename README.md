@@ -46,7 +46,7 @@ Next.js(App Router) + React + TypeScript + Tailwind v3.4 기반 **B안 5페이�
 - **`ref/kium/build/`는 추출 원본(감사 추적)** 으로 보존하며 `lib/`과 동기화하지 않습니다. 최초 이식 시점에는 바이트 동일이었고, 이후 **사업 확정 개정분만 `lib/`에 반영**돼 아래만큼 갈라져 있습니다 — 소개문 7건(§19) · kium-02 `target` 표기 `경력신입사원` → `경력 신입사원`(§21) · **교육구성 `modules` 19건 전건(§22)** · **`category` 19건 전건 재지정 + `subCategory` 필드 삭제 + `target` 5건(§45)**. 확정본이 추출 원본을 소급 수정하면 대조 근거가 사라지므로 의도된 분기이며, `ref/`가 곧 교체 전 원본의 보존처입니다.
 - **카테고리 7종**(`lib/kium/data.ts` `KIUM_CATEGORY_META`): 신입·온보딩 3 · 승진자 3 · 리더십·관리자 3 · AI활용 3 · 비즈니스 역량 3 · 커뮤니케이션·조직활성화 3 · CS·민원응대 1 = **19**. 필터 칩 라벨·카운트는 이 상수와 `KIUM_COURSES` 실측에서 파생되므로 하드코딩된 목록이 없습니다(§45).
 - **콘텐츠 상수**: `lib/kium/content.ts` — 히어로 카피·지원개요·자격확인 3경로·신청절차 4스텝·유의사항·**FAQ 9문항**(초안 7 `draft` + 공개교육 2 `confirmed`, `tag`로 구분)·공식 링크·검증 수치(`facts`)·공개교육 탭 카피(`open`).
-- **공개교육 회차 20건**: `lib/kium/sessions.ts` — 요청 원문 「※공개교육 일자※」 표(260903) 1:1. **요일 문자열은 저장하지 않고 `startDate`에서 파생**합니다(요일 오기 구조적 차단). 일자 미확정 1건(`relead-r3`)은 `tbd:true`로 두어 매트릭스에만 `일정 조율 중`으로 비활성 렌더되고 리스트·집계에서 제외됩니다 → 노출 회차 수 **19**(`KIUM_SESSION_TOTAL` 파생, 수기 숫자 없음). ⚠️ `status` 20건은 **사업부 회신 전 추정값**입니다(§48).
+- **공개교육 회차 19건**: `lib/kium/sessions.ts` — 요청 원문 「※공개교육 일자※」 표(260903) 1:1. **요일 문자열은 저장하지 않고 `start`에서 파생**합니다(요일 오기 구조적 차단). 일자 미확정 1건(`relead-r3`)은 정렬 기준이 `start`라 배열에 넣을 자리가 없어 **주석으로 보류**돼 있습니다(회신 후 한 줄 복원) → 노출 회차 수 **19**(`KIUM_SESSION_TOTAL` 파생, 수기 숫자 없음). **개설 과정 판별의 단일 기준**도 이 배열입니다 — `isOpenCourse()`가 `courseId` 존재 여부만 보고, 별도 플래그가 없습니다(§49). ⚠️ `status` 19건은 **사업부 회신 전 추정값**입니다(§48).
 - **공개교육 교육비 9건**: `lib/kium/pricing.ts` — 원천 xlsx 시트「2. 신청 훈련과정 정보」 **N열(훈련비 단가 · 1인 기준)**. **O열(총 훈련비)은 화면에 쓰지 않습니다** — `N열 × M열(훈련인원)`로 계산된 과정 총액이라 1명 단위 신청 화면에 쓰면 금액을 오해시킵니다. `KIUM_PRICE_VERIFIED` 게이트가 `false`면 금액 대신 `비용은 상담 시 안내`를 노출합니다.
 - **수치 검증 게이트**: `lib/kium/facts.ts`. `verified:false` 항목은 **화면 렌더 차단**이며 접근 시 대체 문구(`기업별 상이 — 상담 시 확인`)와 개발 모드 경고를 반환합니다. 컴포넌트는 이 게이트만 경유합니다(직접 접근 0건).
 - **미노출 항목**: 강사·NCS 분류·환급 소요기간·지역별 차등 환급율은 데이터에도 화면에도 없습니다. **교육 단가는 공개교육 9과정만 예외로 노출**(1인 기준 N열)하며, 위탁 10과정은 `교육 일정`·`교육비` pill 자체를 렌더하지 않습니다(`"-"` 표기 금지 · §48).
@@ -85,14 +85,16 @@ components/
   common/       # Nav·Footer·ReportModal·Modal·SubNav·Button·Reveal·SparkleIcon·InquirySuccess·NewBadge·TeaserSnackbar 등
   sections/     # 페이지별 섹션(home/axai/leadership/hrd/content)
   csr/          # 사회공헌 카드·목록 그리드·본문·홈 밴드
-  kium/         # 인재키움 히어로·탭(3)·개요표·자격확인·절차·FAQ·과정 그리드/카드/썸네일/패널
-                #  + 공개교육: OpenTab·OpenHero·Schedule(Matrix/List)·SessionStatus·ApplySummary
+  kium/         # 인재키움 히어로·탭(2 노출)·개요표·자격확인·절차·FAQ·과정 그리드/카드/썸네일/패널
+                #  + 과정안내 B type: CoursesTab(보기 전환)·UpcomingSessionsStrip
+                #  + 회차 자산(양 type 공용): SessionBadge·SessionCard·SessionListView·ApplySummary·BadgeShowcase
+                #  + 숨김 보존(SHOW_OPEN_TAB=false): OpenTab·OpenHero·Schedule·CourseListView
 data/           # 카피·데이터(verbatim)
 hooks/          # useAutoDismissTimer(완료 카드 자동 소멸)·usePrefersReducedMotion·useNoticeFlag(신규 메뉴 알림 미열람 상태)
 lib/            # useReveal·useModal·utils·validation(필드 검증)·notice(알림 열람 기록)·types + csr/(data·types·queries) + kium/(data·content·queries·facts·sessions·pricing·inquiryBridge·openBridge) + inquiry/(submit·types·contact·inlineForm)
 scripts/        # 유지보수·계측 스크립트(이미지 리사이즈, 대비 검증, 히어로/카드 계측·스크린샷)
 tests/          # Playwright 회귀 테스트 (hero-collision.spec.ts)
-styles/         # components.css(공통) + 페이지별(home/axai/leadership/hrd/content/csr/kium).css + kium-open.css(공개교육 탭)
+styles/         # components.css(공통) + 페이지별(home/axai/leadership/hrd/content/csr/kium).css + kium-open.css(회차 UI·보기 전환)
 public/         # fonts(Pretendard self-host)·images·img(사회공헌)·downloads(xlsx)
 docs/           # 기획 산출물 — 기술명세서 2종 + 일관성 개선 PRD
 ref/kium/       # 기준 문서 — spec/(인재키움 PRD·기술명세서 + 정보보호팀 회신 반영 명세)·전략·데이터 원본·소스대조표
@@ -121,6 +123,7 @@ playwright.config.ts  # 회귀 테스트 설정(chromium 고정 · dev 포트 30
 | `scripts/shoot-content-download.mjs` | /content 다운로드 섹션·다크 히어로 스크린샷 (390/810/1440) |
 | `scripts/check-contrast.mjs` | /kium 썸네일 카테고리 대비 + **공개교육 상태 배지 4종·`공개교육` 칩 대비** 검증 (AA 미달 시 `exit 1`) |
 | `scripts/mobile-audit.mjs` | 7페이지 × 4뷰포트 모바일 대응 계측 |
+| `scripts/verify-btype.mjs` | **/kium B type 회귀 스위트 53종**(탭 숨김·구 쿼리 리다이렉트·보기 전환·스트립·필터·프리필·쇼케이스·타 페이지) + 스크린샷. `BASE_URL`로 배포본 대상 실행 가능 |
 
 폰트: **Pretendard Variable self-host**(`next/font/local`) 전 페이지 통일 + Gowun Batang(홈 매니페스토 한정).
 
@@ -713,7 +716,22 @@ playwright.config.ts  # 회귀 테스트 설정(chromium 고정 · dev 포트 30
 
 > 백엔드 미연동(클라이언트 상태 UI) · Design.md 토큰 준수 · 가격/결제 요소 없음.
 
-## /kium 검증 상태 (공개교육 탭 신설 시점 · §48)
+## /kium 검증 상태 — 현행 (B type 재편 시점 · §49)
+
+| 항목 | 결과 |
+|---|---|
+| `npm run build` | 경고·에러 **0** · `/kium` 정적 생성(29.6 kB · First Load JS **144 kB**) · 신규 npm 의존성 0 · `tsc --noEmit` 0 |
+| 브라우저 회귀 스위트 | **53/53 PASS** (`scripts/verify-btype.mjs`) — 탭 2개 노출·공개교육 패널 DOM 미생성 · 구 진입 경로 2종(`?tab=open`·`#open`) 리다이렉트 · 딥링크 `?tab=courses&mode=open` 완전 렌더 · 보기 전환 11종 · 스트립 9종 · MO/TB · 상태 4종 단독 및 필터 0건/리셋 · 프리필 A·B·마감 가드·무효 id · `?preview=badges` · 타 페이지 5경로 |
+| 구조 불변식 | **전체 보기에서 회차 요소 DOM 0건**(스트립·모드 헤더·회차 레이어·기간/모집 상태 필터) — 정적 HTML 실측. 예외는 개설 과정 카드 아웃라인 뱃지 9건뿐 |
+| 탭 숨김 복원 | `SHOW_OPEN_TAB=true` → 탭 3개·3-스탯 카드·일정 영역·회차 행 19건 복원, JS 에러 0 → `false` 원복 확인 |
+| 시즌 오프 | 시드 일자를 과거로 밀어 시뮬레이션 → 세그먼트 `공개교육 일정 0` 정직 표기·뱃지 9건 유지·안내 블록·프리필 문구 일치 확인 후 **원복** |
+| 반응형·접근성 | 390/900/1440 — 가로 넘침 0px · 44×44px 미만 타깃 0 · `role="tablist"` 오용 0(`aria-pressed` 토글) · 전환 시 `aria-live` 안내 · reduced-motion에서 등장 애니메이션·scroll-snap 무효화 · 뒤로가기 스택 미오염(`replaceState`) |
+| 변인 통제 | SessionBadge·SessionCard·상세 패널·프리필 **A type 무변경 재사용**. `SessionCard`/`SessionListView`는 옵션 prop 추가만이며 미지정 시 렌더 불변 |
+| 계측 | dataLayer(GTM) 미탑재 → `data-evt` 표식만 부착(`kium_mode_open`·`kium_session_cta`+courseId/sessionId/status·`kium_consult_reach`+path). `kium_consult_submit`은 5페이지 공유 `HomeInquiry` 수정을 피해 **미바인딩**(제출 스코프 표식만) |
+
+**§49 후속**: keess-pedu의 Vercel 배포 도메인 확인 후 `BASE_URL=<도메인> node scripts/verify-btype.mjs`로 배포본 재검증 · `kium_consult_submit` 실제 바인딩(dataLayer 도입 시) · 미참조 보존 컴포넌트(`KiumOpenTab`·`KiumOpenHero`·`KiumSchedule`·`CourseListView`·경로 C `consultMonth`/`prefillTextC`)의 존치 기한 판단.
+
+## /kium 검증 상태 — 이력 (공개교육 탭 신설 시점 · §48)
 
 | 항목 | 결과 |
 |---|---|

@@ -46,40 +46,49 @@ export const KIUM_STATUS_ORDER: KiumSessionStatus[] = ['recruiting', 'confirmed'
 /**
  * ⚠ status는 **사업부 회신 전 값**이다(부록 C8 — 원문 근거 없음). 일자만 원문 확정본이다.
  *
- * [B-Type 고도화 §2-2] 이전에는 배지 4종 UI를 화면에서 검증하려고 상태를 배분한 시드를 넣었는데,
- *   그 시드가 **미래 회차를 '마감'으로 노출**했다(agent-r3 11/30 · aijob-r1 10/19).
- *   `effectiveStatus()`는 과거를 마감으로 승격시키는 **단방향** 안전장치라 잘못 박힌 closed를
- *   되돌리지 못한다 — 열린 회차를 닫아 보이는 손실(신청 자체가 안 들어옴)이,
- *   닫힌 회차를 열어 보이는 손실(상담에서 정정 가능)보다 크다.
- *   → 회신 전까지 **전건 'recruiting'**으로 두고 `seatsLeft`는 데이터에서 뺀다.
- *   배지 4종 시각 검증은 `components/kium/BadgeShowcase.tsx`(?preview=badges)가 전담한다.
- *   회신 수령 시 이 필드만 전건 교체할 것. 일자는 건드리지 않는다.
+ * [검토용 시드 v1.0] A/B안 택1 검토를 위해 3상태를 배분한다.
+ *   전건 'recruiting'이면 배지·CTA 4종 중 1종만 화면에 떠 상태별 UI를 확인할 수 없다.
+ *
+ *   ★ 'closed'는 넣지 않는다 — 이것이 v2.0에서 시드를 걷어낸 이유다.
+ *     effectiveStatus()는 과거를 마감으로 올리는 **단방향** 안전장치라
+ *     잘못 박힌 closed를 되돌리지 못하고, 이른 회차를 닫아 보이면 신청 자체가 들어오지 않는다.
+ *     recruiting·confirmed·closing 셋은 모두 신청 경로가 열려 있어 그 손실이 없다.
+ *     또한 모집 상태 필터의 '마감 0건' 빈 상태 안내를 시연하려면 0건이 유지되어야 한다.
+ *     (단 2026-10-12 이후에는 effectiveStatus()가 지난 회차를 알아서 승격시킨다 — 정상 동작)
+ *
+ *   ★ seatsLeft는 데이터에 두지 않는다 — '잔여 N석'은 근거 없는 재고 주장이다.
+ *     잔여석 표시 검증은 ?preview=badges 쇼케이스가 전담한다.
+ *
+ *   배분 기준: 월별 3상태 전부 · 스트립 첫 화면(MO 3 · PC 6)에 3상태 전부 ·
+ *              kium-11/kium-19는 한 과정 안에 3상태 · 이른 회차일수록 마감임박
+ *
+ *   ※ 오픈 전 실제 모집 상태를 회신 받아 이 필드만 전건 교체할 것. 일자는 건드리지 않는다.
  */
 export const KIUM_SESSIONS: KiumSession[] = [
   // AI활용 — 업무효율화: Agent (kium-09)
-  { id: 'agent-r1',  courseId: 'kium-09', displayMonth: 10, start: '2026-10-12', end: '2026-10-13', status: 'recruiting' },
-  { id: 'agent-r2',  courseId: 'kium-09', displayMonth: 11, start: '2026-11-02', end: '2026-11-03', status: 'recruiting' },
-  { id: 'agent-r3',  courseId: 'kium-09', displayMonth: 12, start: '2026-11-30', end: '2026-12-01', status: 'recruiting' },
+  { id: 'agent-r1',  courseId: 'kium-09', displayMonth: 10, start: '2026-10-12', end: '2026-10-13', status: 'closing' },
+  { id: 'agent-r2',  courseId: 'kium-09', displayMonth: 11, start: '2026-11-02', end: '2026-11-03', status: 'confirmed' },
+  { id: 'agent-r3',  courseId: 'kium-09', displayMonth: 12, start: '2026-11-30', end: '2026-12-01', status: 'closing' },
   // AI활용 — 업무효율화: Data (kium-10)
-  { id: 'data-r1',   courseId: 'kium-10', displayMonth: 10, start: '2026-10-14', end: '2026-10-15', status: 'recruiting' },
+  { id: 'data-r1',   courseId: 'kium-10', displayMonth: 10, start: '2026-10-14', end: '2026-10-15', status: 'confirmed' },
   { id: 'data-r2',   courseId: 'kium-10', displayMonth: 11, start: '2026-11-09', end: '2026-11-10', status: 'recruiting' },
-  { id: 'data-r3',   courseId: 'kium-10', displayMonth: 12, start: '2026-12-07', end: '2026-12-08', status: 'recruiting' },
+  { id: 'data-r3',   courseId: 'kium-10', displayMonth: 12, start: '2026-12-07', end: '2026-12-08', status: 'confirmed' },
   // AI활용 — AI 직무전문화 (kium-11)
   { id: 'aijob-r1',  courseId: 'kium-11', displayMonth: 10, start: '2026-10-19', end: '2026-10-20', status: 'recruiting' },
-  { id: 'aijob-r2',  courseId: 'kium-11', displayMonth: 11, start: '2026-11-16', end: '2026-11-17', status: 'recruiting' },
-  { id: 'aijob-r3',  courseId: 'kium-11', displayMonth: 12, start: '2026-12-14', end: '2026-12-15', status: 'recruiting' },
+  { id: 'aijob-r2',  courseId: 'kium-11', displayMonth: 11, start: '2026-11-16', end: '2026-11-17', status: 'closing' },
+  { id: 'aijob-r3',  courseId: 'kium-11', displayMonth: 12, start: '2026-12-14', end: '2026-12-15', status: 'confirmed' },
   // 비즈니스 역량 — 전략적 비즈니스 협상 스킬 (kium-12)
   { id: 'nego-r1',   courseId: 'kium-12', displayMonth: 10, start: '2026-10-27', end: '2026-10-27', status: 'recruiting' },
   // 비즈니스 역량 — 스피치&프레젠테이션 클리닉 (kium-13)
-  { id: 'speech-r1', courseId: 'kium-13', displayMonth: 11, start: '2026-11-12', end: '2026-11-13', status: 'recruiting' },
+  { id: 'speech-r1', courseId: 'kium-13', displayMonth: 11, start: '2026-11-12', end: '2026-11-13', status: 'closing' },
   // 비즈니스 역량 — 인정받는 직장인의 구두보고 스킬 (kium-14)
-  { id: 'report-r1', courseId: 'kium-14', displayMonth: 12, start: '2026-12-11', end: '2026-12-11', status: 'recruiting' },
+  { id: 'report-r1', courseId: 'kium-14', displayMonth: 12, start: '2026-12-11', end: '2026-12-11', status: 'confirmed' },
   // CS·민원응대 — CS 종합 솔루션 (kium-19)
-  { id: 'cs-r1',     courseId: 'kium-19', displayMonth: 10, start: '2026-10-26', end: '2026-10-26', status: 'recruiting' },
-  { id: 'cs-r2',     courseId: 'kium-19', displayMonth: 11, start: '2026-11-17', end: '2026-11-17', status: 'recruiting' },
+  { id: 'cs-r1',     courseId: 'kium-19', displayMonth: 10, start: '2026-10-26', end: '2026-10-26', status: 'closing' },
+  { id: 'cs-r2',     courseId: 'kium-19', displayMonth: 11, start: '2026-11-17', end: '2026-11-17', status: 'confirmed' },
   { id: 'cs-r3',     courseId: 'kium-19', displayMonth: 12, start: '2026-12-21', end: '2026-12-21', status: 'recruiting' },
   // 리더십·관리자 — 진단 기반 팀장 리더십 Re-Lead (kium-04)
-  { id: 'relead-r1', courseId: 'kium-04', displayMonth: 10, start: '2026-10-21', end: '2026-10-22', status: 'recruiting' },
+  { id: 'relead-r1', courseId: 'kium-04', displayMonth: 10, start: '2026-10-21', end: '2026-10-22', status: 'confirmed' },
   { id: 'relead-r2', courseId: 'kium-04', displayMonth: 11, start: '2026-11-18', end: '2026-11-19', status: 'recruiting' },
   // 원문 표기 `12/17(수)~18(금)`에서 틀린 것은 **요일 라벨 (수) 하나뿐**이다(2026-12-17=목).
   //   날짜 17~18은 2일로 과정 길이(14시간·2일)와 정합하고, 요일은 이 파일이 start에서 파생하므로

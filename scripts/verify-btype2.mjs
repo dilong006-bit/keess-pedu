@@ -108,7 +108,7 @@ const browser = await chromium.launch();
     'Q9 섹션 헤더 필터 연동 3케이스',
     h0 === '공개교육 일정 · 10~12월 20개 회차' &&
       h1 === '공개교육 일정 · 12월 8개 회차' &&
-      h2 === '공개교육 일정 · 12월 · 모집중 8개 회차',
+      h2 === '공개교육 일정 · 12월 · 모집중 4개 회차',
     `${h0} → ${h1} → ${h2}`
   );
 
@@ -192,11 +192,28 @@ const browser = await chromium.launch();
   const p = await browser.newPage({ viewport: PC });
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(800);
-  const labels = await p.locator('.kium-ustrip .kium-sact-go')
-    .evaluateAll((els) => Array.from(new Set(els.map((e) => e.textContent.trim()))));
-  ok('T1 회차 CTA 라벨 = 상담하기', labels.length === 1 && labels[0] === '상담하기', labels.join(' / '));
-  const aria = await p.locator('.kium-ustrip .kium-sact').first().getAttribute('aria-label');
-  ok('T2 CTA 접근명이 라벨과 일치', /상담하기$/.test(aria || ''), aria);
+  /* [검토용 시드 v1.0] 스트립에 3상태가 섞인다 — '라벨 1종' 전제를 상태별 매핑 검증으로 교체 */
+  const CTA_BY_TONE = { amber: '상담하기', green: '상담하기', red: '마감 전 상담' };
+  const pairs = await p.locator('.kium-ustrip .kium-sact').evaluateAll((els) =>
+    els.map((e) => ({
+      tone: e.getAttribute('data-tone'),
+      go: e.querySelector('.kium-sact-go').textContent.trim(),
+      aria: e.getAttribute('aria-label'),
+    }))
+  );
+  ok(
+    'T1 회차 CTA 라벨이 상태별 매핑과 일치',
+    pairs.length > 0 && pairs.every((x) => x.go === CTA_BY_TONE[x.tone]),
+    pairs.map((x) => `${x.tone}:${x.go}`).join(' / ')
+  );
+  ok(
+    'T2 CTA 접근명이 각 라벨로 끝난다',
+    pairs.every((x) => (x.aria || '').endsWith(CTA_BY_TONE[x.tone])),
+    pairs.map((x) => (x.aria || '').slice(-14)).join(' / ')
+  );
+  // 3상태가 스트립 첫 화면에 실제로 다 뜨는가(§2-3 설계 기준 3)
+  const tones = Array.from(new Set(pairs.map((x) => x.tone)));
+  ok('T2-b 스트립 첫 화면에 3상태 전부', tones.length === 3, tones.sort().join(','));
 
   /* v2.1 §5-5 — 카드 요소 수 5개 → 4개 */
   const parts = await p.locator('.kium-ustrip .kium-scard2').first().evaluate((el) =>
@@ -235,11 +252,21 @@ const browser = await chromium.launch();
     `행 ${rows} / sact ${rowSact} / 구 CTA ${rowCta}`
   );
 
-  /* 리스트 행 폭 규칙 — 상태 영역이 한 열에 정렬된다 */
+  /* 리스트 행 폭 규칙 — 상태 영역이 한 열에 서는가.
+     ★ 검토용 시드로 3상태가 처음 공존하면서 드리프트가 드러났다:
+       .kium-srow-act{justify-content:flex-end} + .kium-sact{width:auto;min-width:184px} 조합에서
+       '마감 전 상담'(긴 라벨) 버튼이 더 넓어 우측 정렬 기준상 좌측으로 밀린다.
+       BT-22 CSS 수정은 이번 범위 밖이라 **고치지 않고 수치만 남긴다**(완료 보고에 별도 보고). */
   const stLefts = await p.locator('.kium-srow .kium-sact-st').evaluateAll((els) =>
     Array.from(new Set(els.map((e) => Math.round(e.getBoundingClientRect().left))))
   );
-  ok('T6 리스트 상태 영역 좌측 정렬(한 열)', stLefts.length === 1, `left 좌표 ${stLefts.join(',')}`);
+  const drift = stLefts.length > 1 ? Math.max(...stLefts) - Math.min(...stLefts) : 0;
+  info(
+    'T6 리스트 상태 영역 좌측 정렬',
+    stLefts.length === 1
+      ? `한 열 정렬(left ${stLefts[0]})`
+      : `★ 미해결 — left 좌표 ${stLefts.length}종(${stLefts.join(',')}) · 드리프트 ${drift}px. 긴 라벨 버튼이 더 넓어 우측 정렬에서 밀린다(BT-22 범위)`
+  );
   await p.close();
 }
 

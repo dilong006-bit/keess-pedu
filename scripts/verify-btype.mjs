@@ -239,8 +239,9 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
     ok(`H 상태 단독 ${st}`, true, `${head} / 스트립 ${rows}장 / empty ${empty}`);
   }
 
-  // 필터 0건 케이스 — 12월 + 마감임박 조합
-  await page.locator('.kium-chip-st[data-st="closing"]').click();
+  // 필터 0건 케이스 — '마감'은 데이터에 0건이 보장된다(검토용 시드 v1.0 §2-3).
+  // 12월+마감임박은 시드 배분 후 1건이 되어 더 이상 0건 조합이 아니다.
+  await page.locator('.kium-chip-st[data-st="closed"]').click();
   await page.waitForTimeout(300);
   await page.locator('#kium-cf-month + .kium-filters .kium-chip', { hasText: '12월' }).click();
   await page.waitForTimeout(400);

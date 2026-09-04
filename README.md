@@ -68,6 +68,9 @@ npm run test:hero # 모바일 헤더/히어로 겹침 회귀 테스트 (Playwrig
 
 ## 배포 (Vercel 권장)
 
+**현행 배포**: `keess-pedu` → **https://keess-pedu.vercel.app** (프로젝트 `dilong006-2035s-projects/keess-pedu` · `main` 자동 배포)
+`*-dilong006-2035s-projects.vercel.app` 계열 프리뷰 도메인은 **배포 보호(SSO)가 걸려 있어** 익명 접근 시 본문이 내려오지 않습니다. 외부 공유·자동 검증은 위 프로덕션 도메인을 쓰세요.
+
 1. 저장소를 Vercel에 연결 → 프레임워크 자동 감지(Next.js).
 2. 빌드 커맨드 `next build`, 출력 자동. 환경변수 없음.
 3. 전 페이지 정적(SSG)이므로 정적 호스팅(Netlify/S3+CloudFront 등)도 가능.
@@ -378,6 +381,7 @@ playwright.config.ts  # 회귀 테스트 설정(chromium 고정 · dev 포트 30
 - **시즌 오프(미래 회차 0건)에도 아무것도 숨기지 않는다** — 세그먼트는 `공개교육 일정 0`으로 정직하게 표기하고 뱃지 9건도 그대로 둔다. 다음 시즌에 같은 자리에서 발견돼야 하기 때문이다. 시드 일자를 과거로 밀어 시뮬레이션 후 **원복 확인**했다.
 - **계측** — 저장소에 dataLayer(GTM)가 없어 `data-evt` 표식만 부착했다(`kium_mode_open` · `kium_session_cta`+courseId/sessionId/status · `kium_consult_reach`+path). `kium_consult_submit`은 5개 페이지가 공유하는 `HomeInquiry` 제출 버튼에 걸려야 하는데 공유 폼 수정은 타 페이지 회귀 위험이 있어, `/kium` 제출 스코프에만 표식을 남기고 실제 바인딩은 dataLayer 도입 시점으로 미뤘다.
 - **검증**: 브라우저 회귀 **53/53 PASS**(`scripts/verify-btype.mjs`) — 탭 숨김·구 쿼리 리다이렉트 2종·딥링크·보기 전환 11종·스트립 9종·MO/TB·필터 상태 4종 단독 및 0건·프리필 A/B/마감가드/무효 id·쇼케이스·타 페이지 5경로. 추가로 시즌 오프 시뮬레이션(PC/MO), `SHOW_OPEN_TAB=true` 복원, reduced-motion(애니메이션·scroll-snap 무효화), 44px 타깃, 뒤로가기 스택 미오염을 실측했다. `tsc --noEmit` 0 · `next build` 경고 0 · 신규 npm 의존성 0.
+- **배포본 재검증**: https://keess-pedu.vercel.app 기준 **53/53 PASS** + 3경로 콘솔 에러·경고 0 + 5뷰포트 가로 넘침 0px. 로컬 산출물과 결과가 동일해 빌드-배포 간 편차가 없음을 확인했다.
 
 ### 48) /kium '공개교육' 탭 신설 — 회차 일정·교육비·회차→폼 프리필 (G2-01-04 v1.1)
 > 기준: `ref/kium/spec/KEESS_G2-01-04_공개교육탭_기술명세서_v1.1_260903.md` (v1.0은 구버전). 신규 11파일 + 개정 11파일. `/kium` 3번째 탭 `#open` 신설, **신규 라우트 0건 · 신규 색/라운드/그림자 토큰 0건 · 폼 수집 필드·동의 구조 변경 0건.**
@@ -727,9 +731,10 @@ playwright.config.ts  # 회귀 테스트 설정(chromium 고정 · dev 포트 30
 | 시즌 오프 | 시드 일자를 과거로 밀어 시뮬레이션 → 세그먼트 `공개교육 일정 0` 정직 표기·뱃지 9건 유지·안내 블록·프리필 문구 일치 확인 후 **원복** |
 | 반응형·접근성 | 390/900/1440 — 가로 넘침 0px · 44×44px 미만 타깃 0 · `role="tablist"` 오용 0(`aria-pressed` 토글) · 전환 시 `aria-live` 안내 · reduced-motion에서 등장 애니메이션·scroll-snap 무효화 · 뒤로가기 스택 미오염(`replaceState`) |
 | 변인 통제 | SessionBadge·SessionCard·상세 패널·프리필 **A type 무변경 재사용**. `SessionCard`/`SessionListView`는 옵션 prop 추가만이며 미지정 시 렌더 불변 |
+| **배포본 재검증** | **https://keess-pedu.vercel.app 기준 53/53 PASS** — `/kium`·`?tab=courses&mode=open`·`?preview=badges` 3경로 콘솔 에러 0·경고 0 · reduced-motion 무효화 확인 · 320/375/768/1024/1440 가로 넘침 **0px**(스트립 MO 3장 / TB·PC 6장) |
 | 계측 | dataLayer(GTM) 미탑재 → `data-evt` 표식만 부착(`kium_mode_open`·`kium_session_cta`+courseId/sessionId/status·`kium_consult_reach`+path). `kium_consult_submit`은 5페이지 공유 `HomeInquiry` 수정을 피해 **미바인딩**(제출 스코프 표식만) |
 
-**§49 후속**: keess-pedu의 Vercel 배포 도메인 확인 후 `BASE_URL=<도메인> node scripts/verify-btype.mjs`로 배포본 재검증 · `kium_consult_submit` 실제 바인딩(dataLayer 도입 시) · 미참조 보존 컴포넌트(`KiumOpenTab`·`KiumOpenHero`·`KiumSchedule`·`CourseListView`·경로 C `consultMonth`/`prefillTextC`)의 존치 기한 판단.
+**§49 후속**: `kium_consult_submit` 실제 바인딩(dataLayer 도입 시) · 미참조 보존 컴포넌트(`KiumOpenTab`·`KiumOpenHero`·`KiumSchedule`·`CourseListView`·경로 C `consultMonth`/`prefillTextC`)의 존치 기한 판단.
 
 ## /kium 검증 상태 — 이력 (공개교육 탭 신설 시점 · §48)
 

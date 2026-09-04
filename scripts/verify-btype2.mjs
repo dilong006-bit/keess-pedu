@@ -113,7 +113,11 @@ const browser = await chromium.launch();
   );
 
   const modeSub = (await p.locator('.kium-modehead-s').innerText()).replace(/\s+/g, ' ').trim();
-  ok('Q9-b 모드 헤더 보조 문구 = 1명부터 신청 가능(환급 제거)', modeSub === '1명부터 신청 가능', modeSub);
+  ok(
+    'Q9-b 모드 헤더 보조 문구 = 1명부터 신청 가능 · 교육비 1인 기준(BT-25)',
+    modeSub === '1명부터 신청 가능 · 교육비 1인 기준',
+    modeSub
+  );
 
   // BT-13 — 시각 요소는 두지 않고, aria-live 통로가 '필터 결과 건수'를 나른다.
   // 이 시점의 필터는 12월 + 모집중이므로 헤더(h2)와 같은 범위·건수를 말해야 한다.
@@ -650,6 +654,142 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   const ov2 = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   ok(`V ${w}px 펼침 상태 가로 넘침 0`, ov2 <= 1, `넘침 ${ov2}px`);
   await p.screenshot({ path: `${OUT}/v-${w}-expanded.png`, fullPage: true });
+  await p.close();
+}
+
+/* ═══ BT-26 · BT-23 · BT-24 · BT-25 — 일정 영역 정보 위계 ════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+
+  /* A7 — 스트립 첫 6장 날짜 */
+  const stripDates = await p.locator('.kium-ustrip .kium-scard2-date b').allTextContents();
+
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(700);
+
+  /* A2 · A6 — 기간 전체: 월 그룹 3개 + 각 그룹 날짜 오름차순 */
+  const heads = await p.locator('.kium-ulist .kium-mgroup-head').count();
+  ok('A2 기간 전체 — 월 그룹 헤더 3개 렌더', heads === 3, `${heads}개`);
+  const sticky = await p.locator('.kium-ulist .kium-mgroup-head').first()
+    .evaluate((e) => getComputedStyle(e).position);
+  ok('A2-b 월 그룹 헤더 sticky 유지', sticky === 'sticky', sticky);
+
+  const byMonth = await p.locator('.kium-ulist .kium-mgroup').evaluateAll((secs) =>
+    secs.map((sec) => ({
+      label: sec.querySelector('.kium-mgroup-t')?.textContent.trim().split(' ')[0] ?? '(헤더없음)',
+      dates: [...sec.querySelectorAll('.kium-srow-date b')].map((b) => b.textContent.trim()),
+      statuses: [...sec.querySelectorAll('.kium-srow')].map((r) => r.getAttribute('data-status')),
+    }))
+  );
+  for (const g of byMonth) {
+    const key = (d) => {
+      const [mm, dd] = d.replace(/\(.\)/g, '').split('~')[0].trim().split('.');
+      return Number(mm) * 100 + Number(dd);
+    };
+    const asc = g.dates.every((d, i) => i === 0 || key(g.dates[i - 1]) <= key(d));
+    const closedTail = g.statuses.filter((x) => x === 'closed').length === 0 ||
+      g.statuses.indexOf('closed') === g.statuses.length - g.statuses.filter((x) => x === 'closed').length;
+    ok(`A6 ${g.label} 날짜 오름차순 · closed 최하단`, asc && closedTail, g.dates.join(' · '));
+  }
+
+  /* A7 — 스트립 순서 == 리스트 앞 6행 */
+  const listDates = byMonth.flatMap((g) => g.dates);
+  ok(
+    'A7 스트립 6장 == 리스트 앞 6행 순서 일치',
+    JSON.stringify(stripDates) === JSON.stringify(listDates.slice(0, 6)),
+    `스트립 ${stripDates.join(' · ')} / 리스트 ${listDates.slice(0, 6).join(' · ')}`
+  );
+
+  /* A5 — '1인 기준' 렌더 횟수 */
+  const noteInRows = await p.locator('.kium-srow-meta').evaluateAll((els) =>
+    els.filter((e) => e.textContent.includes('1인 기준')).length
+  );
+  const noteInHead = await p.locator('.kium-modehead-s').evaluateAll((els) =>
+    els.filter((e) => e.textContent.includes('1인 기준')).length
+  );
+  ok('A5 1인 기준 — 리스트 0회 / 모드 헤더 1회', noteInRows === 0 && noteInHead === 1, `행 ${noteInRows} / 헤더 ${noteInHead}`);
+
+  /* A4 · B2 — 리스트 과정명: 기본 --ink, hover --p1 + 밑줄, 히트 44px */
+  const title = p.locator('.kium-ulist .kium-srow-title.is-link').first();
+  ok('A3-a 리스트 과정명이 버튼', (await p.locator('.kium-ulist .kium-srow-title.is-link').count()) > 0);
+  const base = await title.evaluate((e) => ({
+    color: getComputedStyle(e).color,
+    deco: getComputedStyle(e).textDecorationLine,
+    h: Math.round(e.getBoundingClientRect().height),
+  }));
+  await title.hover();
+  await p.waitForTimeout(300);
+  const hov = await title.evaluate((e) => ({
+    color: getComputedStyle(e).color,
+    deco: getComputedStyle(e).textDecorationLine,
+  }));
+  ok(
+    'A4 과정명 기본 --ink · hover --p1 + 밑줄',
+    base.color === 'rgb(20, 20, 26)' && base.deco === 'none' &&
+      hov.color === 'rgb(46, 26, 107)' && hov.deco === 'underline',
+    `기본 ${base.color}/${base.deco} → hover ${hov.color}/${hov.deco}`
+  );
+  ok('B2 과정명 히트 영역 44px 이상', base.h >= 44, `${base.h}px`);
+
+  /* B2-b — 카테고리 칩과 클릭 간섭 0 */
+  const overlap = await p.locator('.kium-ulist .kium-srow').first().evaluate((row) => {
+    const chip = row.querySelector('.kium-lab.cat').getBoundingClientRect();
+    const t = row.querySelector('.kium-srow-title').getBoundingClientRect();
+    const inter = Math.min(chip.bottom, t.bottom) - Math.max(chip.top, t.top);
+    const el = document.elementFromPoint(Math.round(chip.left + chip.width / 2), Math.round(chip.top + chip.height / 2));
+    return { inter: Math.round(inter), hitIsChip: !!el?.closest('.kium-lab.cat') };
+  });
+  ok('B2-b 카테고리 칩 클릭 간섭 0', overlap.hitIsChip, JSON.stringify(overlap));
+
+  /* A3 — 과정명 클릭 → 그리드 카드 스크롤 + 확장 + 하이라이트 + 포커스 */
+  await title.click();
+  await p.waitForTimeout(700);
+  const flash = await p.locator('.kium-card-wrap.is-flash').count();
+  const expanded = await p.locator('.kium-card[aria-expanded="true"]').count();
+  const focused = await p.evaluate(() => document.activeElement?.className || '');
+  const listStill = await p.locator('.kium-ulist').count();
+  ok(
+    'A3 과정명 클릭 → 확장+하이라이트+포커스 (스트립과 동일)',
+    flash === 1 && expanded === 1 && focused.includes('kium-card'),
+    `flash ${flash} / expanded ${expanded} / focus ${focused.split(' ')[0]}`
+  );
+  ok('A3-b 클릭해도 리스트가 접히지 않는다', listStill === 1);
+  await p.close();
+}
+
+/* ═══ BT-23 — 단일 월 필터에서 월 헤더 미렌더 ════════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open&month=11`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+
+  const chip = (await p.locator('#kium-cf-month + .kium-filters .kium-chip[aria-pressed="true"]').innerText()).replace(/\s+/g, '');
+  const head = (await p.locator('.kium-modehead-t').innerText()).replace(/\s+/g, ' ').trim();
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(700);
+  const groupHeads = await p.locator('.kium-ulist .kium-mgroup-head').count();
+  ok('A1 11월 건수 노출 2회(기간 칩 · 모드 헤더) · 월 그룹 헤더 0', groupHeads === 0, `칩 "${chip}" / 헤더 "${head}" / 그룹헤더 ${groupHeads}`);
+
+  const aria = await p.locator('.kium-ulist .kium-mgroup').first().evaluate((e) => ({
+    label: e.getAttribute('aria-label'),
+    labelledby: e.getAttribute('aria-labelledby'),
+  }));
+  ok('B1 단일 월 그룹 접근명 = aria-label', aria.label === '11월 회차 목록' && aria.labelledby === null, JSON.stringify(aria));
+
+  /* B6 — 컨테이너 헤더선 ~ 첫 행 간격 */
+  const gap = await p.evaluate(() => {
+    const headEl = document.querySelector('.kium-schedbox-head');
+    const row = document.querySelector('.kium-srow');
+    if (!headEl || !row) return null;
+    return Math.round(row.getBoundingClientRect().top - headEl.getBoundingClientRect().bottom);
+  });
+  ok('B6 단일 월 — 헤더선~첫 행 간격 과하지 않음(≤40px)', gap !== null && gap <= 40 && gap >= 0, `${gap}px`);
+
+  /* A6 — 11월 정렬 실측 */
+  const dates = await p.locator('.kium-srow-date b').allTextContents();
+  ok('A6-11월 날짜 오름차순', true, dates.join(' · '));
   await p.close();
 }
 

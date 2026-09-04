@@ -109,6 +109,7 @@ export default function UpcomingSessionsStrip({
               now={now}
               onConsultSession={onConsultSession}
               showMonthCta={false}
+              onCourseFocus={onCourseFocus}
             />
           </div>
         ) : shown.length === 0 ? (

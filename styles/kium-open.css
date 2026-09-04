@@ -139,6 +139,9 @@
 .kium-mgroup-t{font-size:16px;font-weight:800;letter-spacing:-.01em}
 .kium-mgroup-t .cnt{font-size:12.5px;font-weight:700;color:var(--muted);margin-left:8px}
 .kium-srows{list-style:none;margin-top:10px;display:grid;gap:10px}
+/* [BT-23] 그룹이 하나면 월 헤더가 렌더되지 않는다 → 헤더 몫 여백을 걷는다.
+   :only-child는 TSX의 groups.length > 1과 정확히 같은 조건이라 새 클래스가 필요 없다 */
+.kium-mgroup:only-child .kium-srows{margin-top:0}
 .kium-srow{display:grid;grid-template-columns:210px minmax(0,1fr) 190px auto;align-items:center;gap:16px;
   background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 18px;
   box-shadow:var(--shadow-1)}
@@ -150,6 +153,20 @@
 .kium-srow-date .d{font-size:12.5px;font-weight:700;color:var(--muted)}
 .kium-srow-main{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
 .kium-srow-title{font-size:15px;font-weight:800;color:var(--ink);word-break:keep-all;line-height:1.4}
+/* [BT-24] 전체 일정 리스트 과정명 — 스트립 카드와 같은 동작, 다른 절제 강도.
+   스트립은 6장이라 기본 색 --p1로 달라도 됐지만 리스트는 20행이다.
+   기본 상태를 보라로 칠하면 지면이 시끄러워진다 —
+   리스트에서 과정명은 이미 가장 큰 텍스트(15px/800)라 색 없이도 위계가 선다.
+   어포던스는 hover·focus에서만 준다(v2.1 §5-4의 밑줄 정책과 동일).
+   padding/margin 상쇄로 레이아웃은 그대로 두고 히트 영역만 44px 이상으로 넓힌다. */
+.kium-srow-title.is-link{border:0;background:transparent;text-align:left;
+  /* 명세 §4-3 예시는 11px인데 그러면 43px이 되어 같은 문서 §7-2 B2의 44px 요건에 1px 미달한다.
+     .kium-scard2-course와 같은 12px로 맞춘다(상쇄 margin도 동일하게 조정 — 레이아웃 불변) */
+  padding:12px 0;margin:-12px 0;
+  text-decoration:none;text-underline-offset:3px;
+  transition:color .18s var(--ease)}
+.kium-srow-title.is-link:hover,
+.kium-srow-title.is-link:focus-visible{color:var(--p1);text-decoration:underline}
 .kium-srow-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
 .kium-srow-meta span{display:inline-flex;align-items:center;gap:5px}
 .kium-srow-meta .num{font-weight:800;color:var(--p1);font-variant-numeric:tabular-nums}

@@ -15,6 +15,7 @@ import {
 } from './kiumIcons';
 import { KIUM_CONTENT } from '@/lib/kium/content';
 import { KIUM_OPEN_THUMBS } from '@/lib/kium/openThumbs';
+import { KIUM_PRICE_NOTE } from '@/lib/kium/pricing';
 import { getAllCourses, getCategoryCounts, getCourseById, getOpenFaq } from '@/lib/kium/queries';
 import type { KiumCategory, KiumCourse } from '@/lib/kium/data';
 import {
@@ -536,7 +537,9 @@ export default function KiumCoursesTab() {
                       공개교육 일정 <span className="sep">·</span> {scopeLabel}{' '}
                       <b>{visible.length}</b>개 회차
                     </p>
-                    <p className="kium-modehead-s">1명부터 신청 가능</p>
+                    {/* [BT-25] 리스트 20행에서 걷어낸 '1인 기준'을 여기서 한 번만 말한다.
+                        문자열을 직접 쓰지 않고 KIUM_PRICE_NOTE를 참조해 상세 패널과 어긋날 수 없게 한다. */}
+                    <p className="kium-modehead-s">1명부터 신청 가능 · 교육비 {KIUM_PRICE_NOTE}</p>
                   </div>
                 }
               />

@@ -4,13 +4,12 @@ import { SessionAction } from './SessionBadge';
 import { IconArrowRight, IconCalendarDays, IconClock, IconWallet } from './kiumIcons';
 import { KIUM_CATEGORY_META } from '@/lib/kium/data';
 import { getCourseById } from '@/lib/kium/queries';
-import { fmtPrice, KIUM_PRICE_NOTE } from '@/lib/kium/pricing';
+import { fmtPrice } from '@/lib/kium/pricing';
 import {
   effectiveStatus,
   fmtRange,
   fmtRangeA11y,
   sessionDays,
-  sortByWeight,
   type KiumSession,
 } from '@/lib/kium/sessions';
 
@@ -31,6 +30,7 @@ export default function SessionListView({
   onConsultSession,
   onConsultMonth,
   showMonthCta = true,
+  onCourseFocus,
 }: {
   sessions: KiumSession[];
   now: Date | null;
@@ -42,37 +42,69 @@ export default function SessionListView({
    * 기본 true라 기존 호출부(KiumSchedule)의 렌더는 그대로다.
    */
   showMonthCta?: boolean;
+  /**
+   * [BT-24] 과정명 클릭 시 동작. 없으면 정적 `<span>`으로 렌더된다.
+   *   옵션으로 둬서 숨김 보존된 `KiumSchedule`의 A type 렌더가 한 픽셀도 바뀌지 않게 한다.
+   *   `SessionCard`의 `onCourseClick`과 같은 패턴이다.
+   */
+  onCourseFocus?: (courseId: string) => void;
 }) {
   const groups = MONTHS.map((m) => ({
     month: m,
-    items: sortByWeight(
-      sessions.filter((s) => s.displayMonth === m),
-      now
-    ),
+    /**
+     * [BT-26] 「전체 일정」의 축은 시간이다 — 날짜 오름차순이 1순위다.
+     *   이전 sortByWeight()는 weight ASC → start ASC라, 상태 시드가 들어가는 순간
+     *   같은 월 안에서 날짜가 뒤섞였다(11월 11.9가 네 칸 뒤로 밀림).
+     *   상태 우선 정렬은 '추천순'의 논리이고, 월 그룹으로 묶인 날짜 목록에는 맞지 않는다.
+     *   스트립이 날짜 오름차순이므로 이 규칙으로 두 뷰의 순서도 일치한다(BT-18 토글 교체).
+     *   단 closed는 지난 회차라 미래 회차 사이에 끼면 안 되므로 각 그룹 최하단으로 보낸다.
+     *   ※ sortByWeight()는 CourseListView·KiumSchedule이 참조하므로 함수 자체는 건드리지 않는다.
+     */
+    items: sessions
+      .filter((s) => s.displayMonth === m)
+      .sort((a, b) => {
+        const ca = effectiveStatus(a, now) === 'closed' ? 1 : 0;
+        const cb = effectiveStatus(b, now) === 'closed' ? 1 : 0;
+        return ca - cb || a.start.localeCompare(b.start);
+      }),
   })).filter((g) => g.items.length > 0);
+
+  // [BT-23] 그룹이 하나뿐이면 월 헤더는 역할이 없다 —
+  //   구분할 대상이 없고 건수는 모드 헤더('공개교육 일정 · 11월 6개 회차')가 이미 말한다.
+  //   필터 값이 아니라 '렌더되는 그룹 수'로 판정해 데이터가 바뀌어도 규칙이 성립하게 한다.
+  const showGroupHead = groups.length > 1;
 
   return (
     <div className="kium-slist">
       {groups.map((g) => {
         const hid = `kium-m-${g.month}`;
         return (
-          <section className="kium-mgroup" key={g.month} aria-labelledby={hid}>
-            <div className="kium-mgroup-head">
-              <h4 className="kium-mgroup-t" id={hid}>
-                {g.month}월 <span className="cnt">{g.items.length}개 회차</span>
-              </h4>
-              {showMonthCta && onConsultMonth && (
-                <button
-                  type="button"
-                  className="kium-cta-quiet"
-                  onClick={() => onConsultMonth(g.month)}
-                  aria-label={`${g.month}월 개강 과정 상담 문의`}
-                >
-                  <span>이 시기 교육 상담</span>
-                  <IconArrowRight size={16} />
-                </button>
-              )}
-            </div>
+          <section
+            className="kium-mgroup"
+            key={g.month}
+            // 헤더가 없으면 aria-labelledby가 존재하지 않는 id를 가리킨다 → aria-label로 대체
+            {...(showGroupHead
+              ? { 'aria-labelledby': hid }
+              : { 'aria-label': `${g.month}월 회차 목록` })}
+          >
+            {showGroupHead && (
+              <div className="kium-mgroup-head">
+                <h4 className="kium-mgroup-t" id={hid}>
+                  {g.month}월 <span className="cnt">{g.items.length}개 회차</span>
+                </h4>
+                {showMonthCta && onConsultMonth && (
+                  <button
+                    type="button"
+                    className="kium-cta-quiet"
+                    onClick={() => onConsultMonth(g.month)}
+                    aria-label={`${g.month}월 개강 과정 상담 문의`}
+                  >
+                    <span>이 시기 교육 상담</span>
+                    <IconArrowRight size={16} />
+                  </button>
+                )}
+              </div>
+            )}
 
             <ul className="kium-srows">
               {g.items.map((s) => {
@@ -93,7 +125,21 @@ export default function SessionListView({
                         <span className="kium-dot" aria-hidden="true" />
                         {KIUM_CATEGORY_META[c.category].label}
                       </span>
-                      <span className="kium-srow-title">{c.titleMarketing}</span>
+                      {/* [BT-24] 요약(스트립)과 전체(리스트)는 '깊이'가 다를 뿐 기능이 달라선 안 된다.
+                          BT-18에서 두 뷰를 같은 자리 토글 교체로 만들었으니,
+                          토글 하나에 조금 전까지 되던 동작이 사라지면 그대로 인지 비용이 된다. */}
+                      {onCourseFocus ? (
+                        <button
+                          type="button"
+                          className="kium-srow-title is-link"
+                          onClick={() => onCourseFocus(c.id)}
+                          aria-label={`${c.titleMarketing} 과정 카드로 이동`}
+                        >
+                          {c.titleMarketing}
+                        </button>
+                      ) : (
+                        <span className="kium-srow-title">{c.titleMarketing}</span>
+                      )}
                     </div>
 
                     <p className="kium-srow-meta">
@@ -103,8 +149,10 @@ export default function SessionListView({
                       </span>
                       <span>
                         <IconWallet size={16} />
+                        {/* [BT-25] '1인 기준'은 공개교육 9과정 전건 동일한 값이다.
+                            행마다 반복하면 20회가 되는데, 지워도 어떤 행의 의미도 달라지지 않는다.
+                            전건 같은 값은 항목이 아니라 영역에 속한다 → 컨테이너 헤더에서 한 번만. */}
                         <b className="num">{fmtPrice(c.id)}</b>
-                        <i>{KIUM_PRICE_NOTE}</i>
                       </span>
                     </p>
 

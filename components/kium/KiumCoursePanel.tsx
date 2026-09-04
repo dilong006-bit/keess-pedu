@@ -105,15 +105,17 @@ export default function KiumCoursePanel({
             open 변형은 스트립이 일정을 이미 보여주므로 '교육 일정' pill을 중복 렌더하지 않는다. */}
         {isOpenCourse(course.id) && !isOpenVar && (
           <>
-            <span className="kium-pill">
-              <b>교육 일정</b>
+            {/* 라벨이 '교육 일정'이면 이 과정 전체의 일정으로 읽힌다 — 실제로는 공개교육 회차만
+                나열한 것이고 이 과정은 기업 위탁으로도 운영된다(schedule: '연중상시'). */}
+            <span className="kium-pill" data-open>
+              <b>공개교육</b>
               {(() => {
                 const list = getSessionsByDate().filter((s) => s.courseId === course.id);
                 const head = list.slice(0, SCHEDULE_MAX).map(fmtRange).join(', ');
                 return list.length > SCHEDULE_MAX ? `${head} 외 ${list.length - SCHEDULE_MAX}건` : head;
               })()}
             </span>
-            <span className="kium-pill">
+            <span className="kium-pill" data-open>
               <b>교육비</b>
               <span className="num">{fmtPrice(course.id)}</span>
               <i className="kium-pill-note">{KIUM_PRICE_NOTE}</i>
@@ -121,7 +123,7 @@ export default function KiumCoursePanel({
           </>
         )}
         {isOpenCourse(course.id) && isOpenVar && (
-          <span className="kium-pill">
+          <span className="kium-pill" data-open>
             <b>교육비</b>
             <span className="num">{fmtPrice(course.id)}</span>
             <i className="kium-pill-note">{KIUM_PRICE_NOTE}</i>

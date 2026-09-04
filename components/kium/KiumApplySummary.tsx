@@ -50,7 +50,7 @@ export default function KiumApplySummary() {
       </>
     );
   } else if (sel.route === 'B' && 'request' in sel) {
-    // 경로 B 변형 — 과정이 없는 상담 요청(미개설 과정 · 개설 알림). 문구는 OPEN_REQUEST_TYPE 단일 출처
+    // 경로 B 변형 — 과정을 특정하지 않는 상담 요청. 문구는 OPEN_REQUEST_TYPE 단일 출처
     body = (
       <>
         <b>공개교육 상담</b> · {OPEN_REQUEST_TYPE[sel.request]}

@@ -1,6 +1,6 @@
 'use client';
 
-import { KIUM_PREFILL_EVENT } from './inquiryBridge';
+import { KIUM_PREFILL_EVENT, PREFILL_STRIP } from './inquiryBridge';
 import {
   KIUM_SESSION_META,
   effectiveStatus,
@@ -10,10 +10,11 @@ import {
 } from './sessions';
 import type { KiumCourse } from './data';
 
-/** 공개교육 프리필 토큰 — 재클릭 시 누적되지 않도록 이 블록을 통째로 교체한다 */
-export const KIUM_OPEN_PREFILL_RE = /^\[공개교육 상담 신청\]\n(?:· [^\n]*\n)+/;
-/** 기존 '관심 과정' 토큰도 함께 제거 대상에 넣는다 */
-export const KIUM_COURSE_PREFILL_RE = /^\[관심 과정: [^\]]*\]\s*/;
+/**
+ * 프리필 토큰 제거 목록 — 정의는 inquiryBridge에 있다(순환 import 방지).
+ * 여기서는 재수출만 해 기존 import 경로를 깨뜨리지 않는다.
+ */
+export { PREFILL_STRIP };
 
 /** 요약 배너가 구독하는 이벤트 */
 export const KIUM_OPEN_SELECT_EVENT = 'kium:open-select';
@@ -34,7 +35,7 @@ export type OpenSelection =
  */
 export const OPEN_REQUEST_TYPE = {
   /** 그리드 하단 「과정 개설 상담」 — 원하는 과정이 공개 일정에 없을 때 */
-  noCourse: '공개교육 미개설 과정 상담 희망',
+  noCourse: '공개교육 상담 희망',
   /** 시즌 오프 「개설 알림 상담」 — 미래 회차 0건 구간 */
   seasonOff: '공개교육 개설 일정 안내 요청',
 } as const;
@@ -61,8 +62,8 @@ export function prefillTextA(course: KiumCourse, session: KiumSession, now: Date
 /** 경로 B — 과정만. 마감 회차에서 넘어온 경우 그 사실을 문장으로 남긴다 */
 export function prefillTextB(course: KiumCourse, closedFrom?: KiumSession): string {
   const line = closedFrom
-    ? `· 마감 회차: ${formatSessionRange(closedFrom)} → 다음 회차 문의\n`
-    : `· 일정: 협의 희망\n`;
+    ? `· 희망 회차: ${formatSessionRange(closedFrom)} 마감 → 다음 회차 문의\n`
+    : `· 희망 회차: 협의 희망\n`;
   return `${HEAD}\n` + `· 과정명: ${course.titleMarketing}\n` + line + `· 문의 내용: \n`;
 }
 
@@ -98,7 +99,7 @@ export function dispatchPrefill(text: string, selection: OpenSelection) {
       detail: {
         text,
         // 기존 프리필 토큰만 걷어내고 사용자가 직접 쓴 문장은 그대로 뒤에 남긴다(prepend)
-        strip: [KIUM_OPEN_PREFILL_RE, KIUM_COURSE_PREFILL_RE],
+        strip: PREFILL_STRIP,
       },
     })
   );

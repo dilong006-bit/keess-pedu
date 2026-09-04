@@ -83,7 +83,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
 
   const segAll = await seg(page, 'all').innerText();
   const segOpen = await seg(page, 'open').innerText();
-  ok('D1 세그먼트 라벨·카운트', /전체 과정\s*19/.test(segAll) && /공개교육 일정\s*19/.test(segOpen), `${segAll} | ${segOpen}`);
+  ok('D1 세그먼트 라벨·카운트(양쪽 과정 수)', /전체 과정\s*19/.test(segAll) && /^공개교육\s*9$/.test(segOpen.replace(/\s+/g, ' ').trim()), `${segAll} | ${segOpen}`);
   ok('D2 필터 칩 형태 아님(세그먼트)', (await page.locator('.kium-modeseg').count()) === 1);
 
   const before = {
@@ -110,7 +110,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
      after.strip === 1 && after.head === 1 && after.next === 9 && after.month === 1 && after.st === 1,
      JSON.stringify(after));
   ok('D6 URL mode=open 동기화', page.url().includes('mode=open'), page.url().replace(BASE, ''));
-  ok('D7 aria-live 안내', (await page.locator('.kium-sr[aria-live]').innerText()).includes('공개교육 일정 보기로 전환'));
+  ok('D7 aria-live 안내', (await page.locator('.kium-livenote').innerText()).includes('공개교육 일정 보기로 전환'));
 
   // 새로고침 유지
   await page.reload({ waitUntil: 'networkidle' });
@@ -263,7 +263,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   await page.locator('.kium-leadback .kium-cta-ses').click();
   await page.waitForTimeout(900);
   let v = await ta().inputValue();
-  ok('I1 「과정 개설 상담」 문의 유형 문구', v.includes('· 문의 유형: 공개교육 미개설 과정 상담 희망'), v.split('\n')[1]);
+  ok('I1 「과정 개설 상담」 문의 유형 문구', v.includes('· 문의 유형: 공개교육 상담 희망'), v.split('\n')[1]);
   ok('I2 요약 배너 노출', (await page.locator('.kium-apply-sum').count()) === 1);
   await page.locator('#inq').screenshot({ path: `${OUT}/05-prefill-pc.png` });
 
@@ -280,14 +280,17 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   await page.goto(BASE + '/kium?tab=courses&mode=open&consult=1&course=kium-13', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   v = await ta().inputValue();
-  ok('I5 경로 B 프리필(과정만)', v.includes('· 과정명:') && v.includes('· 일정: 협의 희망'), v.split('\n')[2]);
+  ok('I5 경로 B 프리필(과정만)', v.includes('· 과정명:') && v.includes('· 희망 회차: 협의 희망'), v.split('\n')[2]);
 
-  // 마감 가드 — status:closed 회차 딥링크
-  await page.goto(BASE + '/kium?tab=courses&mode=open&consult=1&course=kium-11&session=aijob-r1', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1000);
-  v = await ta().inputValue();
-  const guard = await page.locator('.kium-apply-guard').count();
-  ok('I6 마감 가드 → 경로 B 강등 + 가드 배너', v.includes('· 마감 회차:') && guard === 1, v.split('\n')[2]);
+  // 마감 회차 — status 시드 제거(BT-02)로 데이터에 closed가 없다.
+  // 가드 코드는 보존돼 있으나 현재 데이터로는 도달 불가하므로 '마감 노출 0건'을 대신 검증한다.
+  await page.goto(BASE + '/kium?tab=courses&mode=open', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  const closedRows = await page.locator('[data-status="closed"]').count();
+  await page.locator('.kium-ustrip-foot button').click();
+  await page.waitForTimeout(500);
+  const closedAll = await page.locator('.kium-ulist [data-status="closed"]').count();
+  ok('I6 마감 노출 0건(status 시드 제거)', closedRows === 0 && closedAll === 0, `스트립 ${closedRows} / 전체 일정 ${closedAll}`);
 
   // 잘못된 id — 에러 없이 무시
   await page.goto(BASE + '/kium?tab=courses&mode=open&consult=1&course=nope&session=nope', { waitUntil: 'networkidle' });

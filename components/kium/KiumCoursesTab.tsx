@@ -133,6 +133,12 @@ export default function KiumCoursesTab() {
    * 필터 연동으로 움직여야 하는 숫자는 모드 헤더의 회차 수 하나뿐이다.
    */
   const catTotal = isOpenMode ? getOpenCourses().length : allCourses.length;
+  /**
+   * 세그먼트 우측 카운트 — **과정 수**다(회차 수가 아니다).
+   * 세그먼트는 '보기 범위'를 고르는 컨트롤이라 양쪽 단위가 같아야 한다.
+   * 회차 수는 바로 아래 섹션 헤더가 필터까지 반영해 말한다(§3-3).
+   */
+  const openCourseTotal = getOpenCourses().length;
 
   /* ── URL 동기화 — replace라 뒤로가기 스택을 늘리지 않는다 ─────────── */
   const syncQuery = useCallback((next: { mode?: Mode; month?: Month; cat?: Cat }) => {
@@ -300,6 +306,17 @@ export default function KiumCoursesTab() {
 
   /* ── 카운트 ─────────────────────────────────────────────────────────── */
   const stCount = countByStatus(scoped, now);
+  /**
+   * 섹션 헤더의 범위 문구 — 필터에서 파생한다.
+   * '10~12월'을 하드코딩해 두면 12월만 걸러 본 사용자에게 표시와 상태가 어긋난 화면이 남는다.
+   */
+  const scopeLabel = [
+    month === 'all' ? '10~12월' : `${month}월`,
+    cat === 'all' ? null : (categories.find((c) => c.key === cat)?.label ?? null),
+    status === 'all' ? null : KIUM_SESSION_META[status].label,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const monthCount = (m: 10 | 11 | 12) => future.filter((s) => s.displayMonth === m).length;
   const openFaq = getOpenFaq();
 
@@ -324,14 +341,10 @@ export default function KiumCoursesTab() {
             data-evt="kium_mode_open"
             onClick={() => changeMode('open')}
           >
-            공개교육 일정 <span className="cnt">{future.length}</span>
+            공개교육 <span className="cnt">{openCourseTotal}</span>
           </button>
         </div>
       </div>
-      <p className="kium-sr" aria-live="polite">
-        {live}
-      </p>
-
       {/* ── 필터 — 보기를 고르고, 그 안에서 거른다 ─────────────────────
           분야는 두 보기 공통. 기간·모집 상태는 공개교육 보기에서만 DOM에 생긴다 */}
       <div className="kium-vfilters">
@@ -369,13 +382,17 @@ export default function KiumCoursesTab() {
                 기간
               </span>
               <div className="kium-filters" role="group" aria-labelledby="kium-cf-month">
+                {/* 「기간」 행 라벨 아래의 맨숫자는 일수(6일짜리 과정)로 읽힌다.
+                    실제 값은 회차 수이므로 이 축에만 단위를 붙인다 — 분야·모집 상태는 무변경.
+                    숫자는 .cnt(tabular-nums), 단위는 <i>로 분리해 한글에 등폭이 걸리지 않게 한다. */}
                 <button
                   type="button"
                   className="kium-chip"
                   aria-pressed={month === 'all'}
+                  aria-label={`기간 전체, ${future.length}개 회차`}
                   onClick={() => changeMonth('all')}
                 >
-                  전체 <span className="cnt">{future.length}</span>
+                  전체 <span className="cnt">{future.length}<i>회차</i></span>
                 </button>
                 {MONTHS.map((m) => (
                   <button
@@ -383,9 +400,10 @@ export default function KiumCoursesTab() {
                     type="button"
                     className="kium-chip"
                     aria-pressed={month === m}
+                    aria-label={`${m}월, ${monthCount(m)}개 회차`}
                     onClick={() => changeMonth(m)}
                   >
-                    {m}월 <span className="cnt">{monthCount(m)}</span>
+                    {m}월 <span className="cnt">{monthCount(m)}<i>회차</i></span>
                   </button>
                 ))}
               </div>
@@ -428,11 +446,27 @@ export default function KiumCoursesTab() {
         )}
       </div>
 
+      {/* 보기 전환 안내 — 화면에도 보이고 낭독도 된다.
+          .kium-sr로 숨겨 두면 눈으로 보는 사용자는 무엇이 바뀌었는지 알 수 없다.
+          빈 문자열이면 렌더하지 않는다(빈 줄 방지). */}
+      {live && (
+        <p className="kium-livenote" aria-live="polite">
+          {live}
+        </p>
+      )}
+
+      {/* 카드마다 반복되던 '정부지원 환급' 배지를 대신하는 승격 1줄.
+          숫자는 쓰지 않는다 — 바로 위 .kium-count("19개 과정")와 겹치기 때문이다.
+          공개교육 보기의 .kium-modehead-s와 대칭 위치다. */}
+      {!isOpenMode && <p className="kium-allhead">모든 과정이 정부지원 환급 대상입니다</p>}
+
       {/* ── 전체 보기 인트로 1줄 — 공개교육으로 넘어가는 텍스트 입구.
+          첫 문장이 사용자의 장벽('인원이 적어 못 하겠다')을 먼저 해소한다.
+          '혼자'는 쓰지 않는다 — 같은 페이지 FAQ가 개인 자격 신청 불가를 명시해 오해를 부른다.
           자연 줄바꿈으로 흘린다(<br> 금지, word-break:keep-all은 CSS가 담당) ── */}
       {!isOpenMode && (
         <p className="kium-openlead">
-          일부 과정은 공개교육으로 1명부터 신청하실 수 있습니다.{' '}
+          인원이 적어도 괜찮습니다. 1명부터 신청할 수 있는 공개교육 일정을 확인해 보세요.{' '}
           <button
             type="button"
             className="kium-openlead-link"
@@ -480,7 +514,8 @@ export default function KiumCoursesTab() {
               {/* 모드 헤더 1줄 — 3-스탯 카드 행을 대신한다. 회차 수는 필터와 연동된다 */}
               <div className="kium-modehead">
                 <p className="kium-modehead-t">
-                  공개교육 일정 <span className="sep">·</span> 10~12월 <b>{visible.length}</b>개 회차
+                  공개교육 일정 <span className="sep">·</span> {scopeLabel} <b>{visible.length}</b>개
+                  회차
                 </p>
                 <p className="kium-modehead-s">1명부터 신청 가능 · 정부지원 환급</p>
               </div>

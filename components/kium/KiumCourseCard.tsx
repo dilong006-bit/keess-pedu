@@ -83,9 +83,11 @@ export default function KiumCourseCard({
           </span>
           {/* [260824] 'AI융합형' 칩은 사업 지시로 렌더에서 제거.
               data.ts의 `type` 필드·값은 보존한다(고용24 신청 실무·검증 대조용 — titleOfficial과 동일 취급). */}
-          {/* 정부지원 환급 배지 — 단가(원) 미노출을 갈음하는 B2B 환급 구조 표기.
-              공개교육 탭에서는 섹션 스탯 카드가 같은 정보를 이미 말하므로 카드에서 뺀다(C3). */}
-          {!isOpen && <span className="kium-badge gov">정부지원 환급</span>}
+          {/* [B-Type 고도화 §5-1] 정부지원 환급 배지는 렌더하지 않는다.
+              19/19 전 카드에 붙던 라벨이라 변별력이 0이고, 지면에서 가장 진한 색(--gov)이라
+              카드마다 다른 대상·시간보다 먼저 읽혔다. 스크린리더는 카탈로그를 훑을 때 19번 반복 낭독했다.
+              같은 사실은 섹션 승격 1줄(.kium-allhead)이 한 번만 말한다.
+              CSS 규칙 .kium-badge.gov는 남겨 둔다(전역 검색 결과 다른 사용처는 없으나 토큰 삭제는 별건). */}
           {/* 펼침 방향 인디케이터 — .kium-elig-chev(KiumEligibility)와 동일 패턴 재사용 */}
           <ChevronDown className="kium-card-chev" size={16} aria-hidden="true" />
         </span>

@@ -11,6 +11,7 @@ import { INQUIRY_CONTACT, INQUIRY_MAILTO, INQUIRY_TEL_HREF } from '@/lib/inquiry
 import { useAutoDismissTimer } from '@/hooks/useAutoDismissTimer';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { SUCCESS_AUTO_RESET_MS } from '@/components/common/InquirySuccess';
+import { PREFILL_STRIP } from '@/lib/kium/inquiryBridge';
 
 const ALLOWED = ['zip', 'pdf', 'hwp', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif'];
 const MAX = 10 * 1024 * 1024;
@@ -266,7 +267,7 @@ export default function HomeInquiry({
         let message = s.message;
         if (d.text) {
           // 기존 프리필 토큰(관심 과정 / 공개교육 신청)을 제거해 재클릭 시 누적을 막는다
-          for (const re of d.strip ?? [/^\[관심 과정: [^\]]*\]\s*/]) message = message.replace(re, '');
+          for (const re of d.strip ?? PREFILL_STRIP) message = message.replace(re, '');
           message = (d.text + message).slice(0, INQ_MAX.message);
         }
         return { ...s, message, ...(d.trainees ? { trainees: d.trainees } : {}) };

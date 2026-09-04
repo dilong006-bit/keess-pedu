@@ -367,6 +367,25 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   max-width:52ch}
 .kium-seasonoff .kium-cta-ses{background:#fff}
 
+/* =========================================================================
+   B-Type 고도화 (명세 §8) — 기존 토큰과 color-mix 파생만. 신규 색·라운드·그림자 0
+   ========================================================================= */
+
+/* 기간 칩 단위 (BT-04) — 숫자는 등폭, 단위는 일반 서체 */
+.kium-chip .cnt i{font-style:normal;font-variant-numeric:normal;margin-left:1px;font-weight:700}
+
+/* 전체 보기 승격 1줄 (BT-06) — 공개교육 보기 .kium-modehead-s와 같은 무게 */
+.kium-allhead{margin-top:16px;font-size:13.5px;font-weight:700;color:var(--muted)}
+
+/* 보기 전환 결과 문구 시각 노출 (BT-11) */
+.kium-livenote{margin-top:10px;font-size:13px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+
+/* 공개교육 전용 pill 구분 (BT-08) — 위탁 공통 정보(대상·형태·시간·정원)와 시각 분리 */
+.kium-pill[data-open]{background:color-mix(in srgb,var(--p3) 7%,#fff);
+  border-color:color-mix(in srgb,var(--p3) 22%,#fff)}
+.kium-pill[data-open] b{color:var(--p3)}
+
 /* ── 모션 저감 ────────────────────────────────────────────────── */
 @media(prefers-reduced-motion:reduce){
   .kium-sched-body{transition:none}

@@ -12,11 +12,27 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
  * - 세 패널 모두 DOM에 렌더하고 비활성 패널은 hidden — 정적 HTML에 전 콘텐츠 포함
  */
 
-const TABS = [
+/**
+ * ★ 공개교육 탭 숨김 스위치 (B type 명세 STEP 1-1)
+ *
+ *   false = 탭 버튼·탭 패널을 **DOM에 만들지 않는다**(display:none이 아니라 미생성).
+ *   true  = 3탭 구성이 그대로 되살아난다.
+ *
+ * 복원 방법: 이 상수 하나를 `true`로 바꾸면 끝이다. 공개교육 탭의 컴포넌트·콘텐츠·CSS는
+ * 어느 것도 삭제하지 않았고 app/kium/page.tsx도 `open` 패널을 계속 조립해 넘긴다.
+ * (숨김 중에는 그 JSX가 렌더 트리에 오르지 않으므로 DOM·번들 실행 비용이 없다)
+ */
+export const SHOW_OPEN_TAB = false;
+
+/** 탭 정의 원본 — 숨김 여부와 무관하게 보존한다 */
+const ALL_TABS = [
   { id: 'intro', label: '사업소개' },
   { id: 'courses', label: '과정안내' },
   { id: 'open', label: '공개교육' },
 ] as const;
+
+/** 실제로 렌더할 탭. 숨긴 탭은 인덱스 자체가 사라지므로 화살표 탐색·인디케이터도 자동으로 맞는다 */
+const TABS = ALL_TABS.filter((t) => t.id !== 'open' || SHOW_OPEN_TAB);
 
 const OUT_MS = 120;
 
@@ -29,8 +45,10 @@ export default function KiumTabs({
   courses: ReactNode;
   open: ReactNode;
 }) {
-  // 패널은 TABS와 같은 순서로 배열 참조한다 — 탭이 늘어도 인덱스 분기를 고치지 않는다
-  const panes = [intro, courses, open];
+  // 패널은 TABS와 같은 순서로 배열 참조한다 — 탭이 늘어도 인덱스 분기를 고치지 않는다.
+  // 숨긴 탭은 TABS에서 빠졌으므로 패널도 같은 규칙으로 걸러 DOM에 만들지 않는다.
+  const paneById: Record<string, ReactNode> = { intro, courses, open };
+  const panes = TABS.map((t) => paneById[t.id]);
   const [active, setActive] = useState(0);
   const [fading, setFading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -57,6 +75,35 @@ export default function KiumTabs({
     const i = TABS.findIndex((t) => t.id === id);
     return i < 0 ? null : i;
   };
+
+  /**
+   * 구 진입 경로 보호 (B type 명세 STEP 1-1).
+   * 공개교육 탭으로 향하던 링크(`?tab=open` · `#open`)를 과정안내 탭 + 공개교육 보기로 넘긴다.
+   * 이미 공유된 URL이 빈 화면으로 떨어지지 않게 하는 것이 목적이므로 replace로 조용히 바꾼다.
+   */
+  useEffect(() => {
+    if (SHOW_OPEN_TAB) return;
+    const url = new URL(window.location.href);
+    const hashId = url.hash.replace(/^#/, '');
+    if (url.searchParams.get('tab') !== 'open' && hashId !== 'open') return;
+    url.searchParams.set('tab', 'courses');
+    url.searchParams.set('mode', 'open');
+    url.hash = 'courses';
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    window.dispatchEvent(new Event('hashchange'));
+  }, []);
+
+  /**
+   * `?tab=` 진입 별칭 (명세 STEP 6 딥링크 `?tab=courses&mode=open`).
+   * 탭 상태의 단일 출처는 종전대로 해시다 — 쿼리는 첫 진입에서 해시로 번역만 하고 끝낸다.
+   */
+  useEffect(() => {
+    const qtab = new URLSearchParams(window.location.search).get('tab');
+    if (!qtab) return;
+    const i = TABS.findIndex((t) => t.id === qtab);
+    if (i < 0) return;
+    setActive(i);
+  }, []);
 
   // 해시 → 탭 (초기 딥링크 + 뒤로/앞으로 가기)
   useEffect(() => {

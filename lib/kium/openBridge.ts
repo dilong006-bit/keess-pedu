@@ -24,7 +24,22 @@ export type PrefillRoute = 'A' | 'B' | 'C';
 export type OpenSelection =
   | { route: 'A'; courseId: string; sessionId: string; guard?: 'closed' | 'invalid' }
   | { route: 'B'; courseId: string; fromClosedSessionId?: string }
+  /** 경로 B 변형 — 과정을 특정하지 않는 상담 요청(B type STEP 4-3 · 5-3). `request` 유무로 좁힌다 */
+  | { route: 'B'; request: OpenRequestKind }
   | { route: 'C'; month: 10 | 11 | 12 };
+
+/**
+ * 리드 회수 문의 유형 (B type 명세 STEP 4-3 · STEP 5-3).
+ * 프리필 본문과 요약 배너가 같은 문자열을 쓰도록 여기 한 곳에만 둔다 — 문구 어긋남을 구조적으로 막는다.
+ */
+export const OPEN_REQUEST_TYPE = {
+  /** 그리드 하단 「과정 개설 상담」 — 원하는 과정이 공개 일정에 없을 때 */
+  noCourse: '공개교육 미개설 과정 상담 희망',
+  /** 시즌 오프 「개설 알림 상담」 — 미래 회차 0건 구간 */
+  seasonOff: '공개교육 개설 일정 안내 요청',
+} as const;
+
+export type OpenRequestKind = keyof typeof OPEN_REQUEST_TYPE;
 
 /* ── 문의 내용 본문 조립 ─────────────────────────────────────────────
    placeholder가 아니라 실제 value로 주입한다. 사용자가 자유롭게 편집·삭제할 수 있다. */
@@ -54,6 +69,17 @@ export function prefillTextB(course: KiumCourse, closedFrom?: KiumSession): stri
 /** 경로 C — 시기만 */
 export function prefillTextC(month: 10 | 11 | 12): string {
   return `${HEAD}\n` + `· 희망 시기: ${month}월 개강 과정 상담 희망\n` + `· 문의 내용: \n`;
+}
+
+/**
+ * 경로 B 변형 본문 — 과정을 특정하지 않는 상담 요청.
+ * `· 과정명` 자리에 `· 문의 유형` 한 줄을 넣는다(명세 STEP 4-3 · 5-3 문구 고정).
+ */
+export function prefillTextBRequest(kind: OpenRequestKind): string {
+  return `${HEAD}
+` + `· 문의 유형: ${OPEN_REQUEST_TYPE[kind]}
+` + `· 문의 내용: 
+`;
 }
 
 /** 마감 가드 문구 — 요약 배너가 그대로 출력한다 */
@@ -136,6 +162,16 @@ export function consultCourse(course: KiumCourse, closedFrom?: KiumSession) {
 export function consultMonth(month: 10 | 11 | 12) {
   dispatchPrefill(prefillTextC(month), { route: 'C', month });
   syncConsultQuery({ month: String(month), course: null, session: null });
+  scrollToInquiry();
+}
+
+/**
+ * 경로 B 변형 진입점 — 「과정 개설 상담」·「개설 알림 상담」.
+ * 과정·회차 쿼리는 비운다 — 직전 선택이 남아 폼 본문과 요약 배너가 어긋나는 것을 막는다.
+ */
+export function consultOpenRequest(kind: OpenRequestKind) {
+  dispatchPrefill(prefillTextBRequest(kind), { route: 'B', request: kind });
+  syncConsultQuery({ course: null, session: null, month: null });
   scrollToInquiry();
 }
 

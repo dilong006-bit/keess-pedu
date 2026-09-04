@@ -13,11 +13,10 @@ import KiumEligibility from '@/components/kium/KiumEligibility';
 import KiumProcess from '@/components/kium/KiumProcess';
 import KiumCautions from '@/components/kium/KiumCautions';
 import KiumFaq from '@/components/kium/KiumFaq';
-import KiumCourseGrid from '@/components/kium/KiumCourseGrid';
+import KiumCoursesTab from '@/components/kium/KiumCoursesTab';
 import KiumOpenTab from '@/components/kium/KiumOpenTab';
 import KiumApplySummary from '@/components/kium/KiumApplySummary';
 import { KIUM_CONTENT } from '@/lib/kium/content';
-import { getAllCourses, getCategoryCounts } from '@/lib/kium/queries';
 
 export const metadata: Metadata = {
   title: '인재키움 프리미엄 | KEESS',
@@ -29,9 +28,6 @@ export const metadata: Metadata = {
 const NOTICE_LINK = KIUM_CONTENT.officialLinks[2];
 
 export default function KiumPage() {
-  const courses = getAllCourses();
-  const categories = getCategoryCounts();
-
   // 탭1 — 사업소개
   const intro = (
     <>
@@ -97,7 +93,7 @@ export default function KiumPage() {
     </>
   );
 
-  // 탭2 — 과정안내
+  // 탭2 — 과정안내 (B type: 전체 과정 ↔ 공개교육 일정 보기 전환을 이 패널이 소유한다)
   const coursesPanel = (
     <section className="kium-sec" id="kium-courses">
       <div className="wrap">
@@ -105,12 +101,14 @@ export default function KiumPage() {
         <h2 className="kium-sec-title r" tabIndex={-1} data-panel-heading>
           {KIUM_CONTENT.sectionLeads.courses}
         </h2>
-        <KiumCourseGrid courses={courses} categories={categories} />
+        <KiumCoursesTab />
       </div>
     </section>
   );
 
-  // 탭3 — 공개교육 (§5-12). 데이터·상태는 전부 KiumOpenTab이 lib에서 조회한다
+  /* 탭3 — 공개교육 (§5-12). 데이터·상태는 전부 KiumOpenTab이 lib에서 조회한다.
+     [B type STEP 1-1] 이 패널은 **보존**된다. KiumTabs의 SHOW_OPEN_TAB=false인 동안
+     렌더 트리에 오르지 않아 DOM이 생성되지 않을 뿐, 플래그를 true로 돌리면 그대로 되살아난다. */
   const openPanel = (
     <section className="kium-sec" id="kium-open">
       <div className="wrap">
@@ -135,7 +133,11 @@ export default function KiumPage() {
       {/* CTA 밴드 — 양 탭 하단 공통. 기존 도입문의 폼 그대로 재사용(필드·동의 구조 무변경).
           /kium 경유 진입이므로 '정부 지원' 칩을 선택된 상태로 시작하고(해제 가능),
           제출 페이로드에는 lead_source를 비노출 필드로 싣는다. */}
-      <div className="kium-cta-band">
+      {/* data-evt: dataLayer(GTM) 미탑재 구간의 계측 표식(명세 STEP 8).
+          kium_consult_submit은 5개 페이지가 공유하는 HomeInquiry의 제출 버튼에 걸려야 하는데,
+          공유 폼을 고치면 타 페이지 회귀 위험이 생긴다 → /kium 제출 스코프에만 표식을 남기고
+          실제 바인딩은 dataLayer 도입 시점으로 미룬다(완료 보고 명시). */}
+      <div className="kium-cta-band" data-evt="kium_consult_submit" data-evt-scope="form">
         {/* 신청 요약 배너 — 공유 폼을 건드리지 않고 프리필 상태를 시각화한다(§7-2).
             회차 선택 전에는 아예 렌더되지 않는다. */}
         <KiumApplySummary />

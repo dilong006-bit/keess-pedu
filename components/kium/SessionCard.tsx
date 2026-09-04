@@ -77,17 +77,28 @@ export function SessionPill({
  * 상세 패널 회차 카드 (명세 §4-2)
  *
  * 날짜가 헤드라인, 상태 배지가 그 아래, CTA가 바닥. 상태별 CTA 규칙은 §2-3 그대로 따른다.
+ *
+ * [B type STEP 4-1] 다가오는 일정 스트립이 같은 카드를 재사용한다. 스트립은 여러 과정이 섞이므로
+ *   과정명 1줄이 필요한데, 상세 패널은 이미 과정명이 헤더에 있어 중복이 된다.
+ *   → `showCourse`를 **옵션**으로 둬서 미지정 시 A type 렌더가 한 픽셀도 바뀌지 않게 한다.
+ *   `onCourseClick`이 있으면 과정명을 버튼으로 올려 그리드의 해당 카드로 보낸다.
  */
 export function SessionCard({
   session,
   course,
   now,
   onConsult,
+  showCourse = false,
+  onCourseClick,
 }: {
   session: KiumSession;
   course: KiumCourse;
   now: Date | null;
   onConsult: (s: KiumSession) => void;
+  /** 과정명 1줄 노출 여부. 기본 false = 상세 패널 스트립(A type) 렌더 유지 */
+  showCourse?: boolean;
+  /** 과정명 클릭 시 동작. 없으면 과정명은 정적 텍스트로 렌더된다 */
+  onCourseClick?: () => void;
 }) {
   const st = effectiveStatus(session, now);
   const a11y = `${course.titleMarketing}, ${fmtRangeA11y(session)}, ${sessionDays(session)}일 과정, ${fmtPrice(course.id)}`;
@@ -98,6 +109,19 @@ export function SessionCard({
         <b>{fmtRange(session)}</b>
       </p>
       <p className="kium-scard2-days">{sessionDays(session)}일 과정</p>
+      {showCourse &&
+        (onCourseClick ? (
+          <button
+            type="button"
+            className="kium-scard2-course"
+            onClick={onCourseClick}
+            aria-label={`${course.titleMarketing} 과정 카드로 이동`}
+          >
+            {course.titleMarketing}
+          </button>
+        ) : (
+          <p className="kium-scard2-course is-static">{course.titleMarketing}</p>
+        ))}
       <SessionBadge status={st} seatsLeft={session.seatsLeft} />
       <SessionCta status={st} label={a11y} onClick={() => onConsult(session)} />
     </div>

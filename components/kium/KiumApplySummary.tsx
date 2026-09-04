@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { IconCalendarRange } from './kiumIcons';
-import { GUARD_CLOSED_TEXT, KIUM_OPEN_SELECT_EVENT, type OpenSelection } from '@/lib/kium/openBridge';
+import {
+  GUARD_CLOSED_TEXT,
+  KIUM_OPEN_SELECT_EVENT,
+  OPEN_REQUEST_TYPE,
+  type OpenSelection,
+} from '@/lib/kium/openBridge';
 import { getCourseById } from '@/lib/kium/queries';
 import { formatSessionRange, getSessionById } from '@/lib/kium/sessions';
 
@@ -44,6 +49,13 @@ export default function KiumApplySummary() {
         <b>{c.titleMarketing}</b> · {formatSessionRange(s)}
       </>
     );
+  } else if (sel.route === 'B' && 'request' in sel) {
+    // 경로 B 변형 — 과정이 없는 상담 요청(미개설 과정 · 개설 알림). 문구는 OPEN_REQUEST_TYPE 단일 출처
+    body = (
+      <>
+        <b>공개교육 상담</b> · {OPEN_REQUEST_TYPE[sel.request]}
+      </>
+    );
   } else if (sel.route === 'B') {
     const c = getCourseById(sel.courseId);
     if (!c) return null;
@@ -70,7 +82,9 @@ export default function KiumApplySummary() {
         <span className="t">상담으로 작성 중입니다</span>
       </span>
       {guard && <span className="kium-apply-guard">{guard}</span>}
-      <a className="chg" href="#kium-open">
+      {/* 공개교육 탭 숨김(B type STEP 1-1)으로 #kium-open 패널은 렌더되지 않는다.
+          되돌아갈 곳은 회차 UI가 실제로 사는 과정안내 섹션이다. */}
+      <a className="chg" href="#kium-courses">
         변경
       </a>
     </div>

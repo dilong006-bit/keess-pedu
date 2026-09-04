@@ -30,11 +30,18 @@ export default function SessionListView({
   now,
   onConsultSession,
   onConsultMonth,
+  showMonthCta = true,
 }: {
   sessions: KiumSession[];
   now: Date | null;
   onConsultSession: (s: KiumSession) => void;
-  onConsultMonth: (m: 10 | 11 | 12) => void;
+  /** 월 그룹 헤더 「이 시기 교육 상담」(프리필 경로 C). showMonthCta=false면 호출되지 않는다 */
+  onConsultMonth?: (m: 10 | 11 | 12) => void;
+  /**
+   * [B type STEP 6] 경로 C는 미탑재다 — 트리거를 렌더하지 않는다(코드는 보존).
+   * 기본 true라 기존 호출부(KiumSchedule)의 렌더는 그대로다.
+   */
+  showMonthCta?: boolean;
 }) {
   const groups = MONTHS.map((m) => ({
     month: m,
@@ -54,15 +61,17 @@ export default function SessionListView({
               <h4 className="kium-mgroup-t" id={hid}>
                 {g.month}월 <span className="cnt">{g.items.length}개 회차</span>
               </h4>
-              <button
-                type="button"
-                className="kium-cta-quiet"
-                onClick={() => onConsultMonth(g.month)}
-                aria-label={`${g.month}월 개강 과정 상담 문의`}
-              >
-                <span>이 시기 교육 상담</span>
-                <IconArrowRight size={16} />
-              </button>
+              {showMonthCta && onConsultMonth && (
+                <button
+                  type="button"
+                  className="kium-cta-quiet"
+                  onClick={() => onConsultMonth(g.month)}
+                  aria-label={`${g.month}월 개강 과정 상담 문의`}
+                >
+                  <span>이 시기 교육 상담</span>
+                  <IconArrowRight size={16} />
+                </button>
+              )}
             </div>
 
             <ul className="kium-srows">

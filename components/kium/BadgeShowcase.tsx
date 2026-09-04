@@ -85,12 +85,28 @@ export default function BadgeShowcase() {
         ))}
       </div>
 
-      <h4>⑤ 마감 가드 배너</h4>
+      <h4>⑤ 스트립 카드 4종 (과정명 1줄 · B type STEP 4-1)</h4>
+      <div className="kium-ustrip">
+        {KIUM_STATUS_ORDER.map((st, i) => (
+          <div className="kium-ustrip-cell" key={st}>
+            <SessionCard
+              session={demoSession(st, i)}
+              course={course}
+              now={null}
+              onConsult={noop}
+              showCourse
+              onCourseClick={noop}
+            />
+          </div>
+        ))}
+      </div>
+
+      <h4>⑥ 마감 가드 배너</h4>
       <div className="kium-apply-sum" role="status">
         <span className="kium-apply-guard">{GUARD_CLOSED_TEXT}</span>
       </div>
 
-      <h4>⑥ 회차 0개 케이스</h4>
+      <h4>⑦ 회차 0개 케이스</h4>
       <p className="kium-noses">다음 회차 준비 중 — 과정만 상담이 가능합니다</p>
     </section>
   );

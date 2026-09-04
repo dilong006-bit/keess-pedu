@@ -197,7 +197,8 @@ const browser = await chromium.launch();
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(800);
   /* [검토용 시드 v1.0] 스트립에 3상태가 섞인다 — '라벨 1종' 전제를 상태별 매핑 검증으로 교체 */
-  const CTA_BY_TONE = { amber: '상담하기', green: '상담하기', red: '마감 전 상담' };
+  // [BT-27] 신청 가능 3상태 라벨 통일 — 우측이 상태를 반복하지 않는다
+  const CTA_BY_TONE = { amber: '상담하기', green: '상담하기', red: '상담하기' };
   const pairs = await p.locator('.kium-ustrip .kium-sact').evaluateAll((els) =>
     els.map((e) => ({
       tone: e.getAttribute('data-tone'),
@@ -259,7 +260,7 @@ const browser = await chromium.launch();
   /* 리스트 행 폭 규칙 — 상태 영역이 한 열에 서는가.
      ★ 검토용 시드로 3상태가 처음 공존하면서 드리프트가 드러났다:
        .kium-srow-act{justify-content:flex-end} + .kium-sact{width:auto;min-width:184px} 조합에서
-       '마감 전 상담'(긴 라벨) 버튼이 더 넓어 우측 정렬 기준상 좌측으로 밀린다.
+       긴 라벨 버튼이 더 넓어 우측 정렬 기준상 좌측으로 밀렸다(BT-27 라벨 통일로 해소 여부 계측).
        BT-22 CSS 수정은 이번 범위 밖이라 **고치지 않고 수치만 남긴다**(완료 보고에 별도 보고). */
   const stLefts = await p.locator('.kium-srow .kium-sact-st').evaluateAll((els) =>
     Array.from(new Set(els.map((e) => Math.round(e.getBoundingClientRect().left))))
@@ -433,8 +434,8 @@ const browser = await chromium.launch();
   ok('U2 recruiting — 버튼 · 상담하기', by('recruiting')?.isButton && by('recruiting')?.go === '상담하기', JSON.stringify(by('recruiting')));
   ok('U3 confirmed — 버튼 · 상담하기', by('confirmed')?.isButton && by('confirmed')?.go === '상담하기', JSON.stringify(by('confirmed')));
   ok(
-    'U4 closing — filled(red) · 마감 전 상담 · 잔여석 병기',
-    by('closing')?.isButton && by('closing')?.tone === 'red' && by('closing')?.go === '마감 전 상담' && /잔여 \d+석/.test(by('closing')?.seats || ''),
+    'U4 closing — filled(red) · 상담하기 · 잔여석 병기(BT-27)',
+    by('closing')?.isButton && by('closing')?.tone === 'red' && by('closing')?.go === '상담하기' && /잔여 \d+석/.test(by('closing')?.seats || ''),
     JSON.stringify(by('closing'))
   );
   ok(
@@ -790,6 +791,152 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   /* A6 — 11월 정렬 실측 */
   const dates = await p.locator('.kium-srow-date b').allTextContents();
   ok('A6-11월 날짜 오름차순', true, dates.join(' · '));
+  await p.close();
+}
+
+/* ═══ BT-27 · BT-28 · BT-29 — CTA 라벨 · 줄바꿈 · 하단 정렬 ══════ */
+{
+  /* C2 — 뷰포트 × 상태 × 스트립·리스트에서 버튼이 1행인지 */
+  const rows = [];
+  for (const w of [320, 375, 768, 1024, 1440]) {
+    const p = await browser.newPage({ viewport: { width: w, height: 1200 } });
+    // 실 데이터(3상태) — 스트립
+    await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(900);
+    const strip = await p.locator('.kium-ustrip .kium-sact').evaluateAll((els) =>
+      els.map((e) => ({
+        tone: e.getAttribute('data-tone'),
+        h: Math.round(e.getBoundingClientRect().height),
+        sh: e.scrollHeight,
+        oneLine: (() => {
+          const mid = (n) => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
+          return Math.abs(mid(e.querySelector('.kium-sact-st')) - mid(e.querySelector('.kium-sact-go'))) < 4;
+        })(),
+      }))
+    );
+    // 리스트
+    await p.locator('.kium-schedbox-toggle').click();
+    await p.waitForTimeout(700);
+    const list = await p.locator('.kium-srow .kium-sact').evaluateAll((els) =>
+      els.map((e) => ({
+        tone: e.getAttribute('data-tone'),
+        h: Math.round(e.getBoundingClientRect().height),
+        oneLine: (() => {
+          const mid = (n) => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
+          return Math.abs(mid(e.querySelector('.kium-sact-st')) - mid(e.querySelector('.kium-sact-go'))) < 4;
+        })(),
+      }))
+    );
+    // 쇼케이스 — closing+잔여석(최악 폭) · closed 형태
+    await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=badges`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(900);
+    const show = await p.locator('.kium-showcase .kium-ustrip .kium-scard2').evaluateAll((els) =>
+      els.map((e) => {
+        const act = e.querySelector('.kium-sact');
+        const closed = e.querySelector('.kium-sact-closed');
+        // 높이가 다른 형제(배지 24px vs 링크 44px)가 center 정렬돼 있으므로
+        // top이 아니라 **중심선**을 비교해야 '같은 줄'을 옳게 판정한다.
+        const mid = (n) => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
+        const one = (el) =>
+          Math.abs(
+            mid(el.querySelector('.kium-sact-st, .kium-sbadge')) -
+              mid(el.querySelector('.kium-sact-go, .kium-cta-next'))
+          ) < 4;
+        return {
+          status: e.getAttribute('data-status'),
+          isButton: !!act,
+          oneLine: one(act || closed),
+          seats: e.querySelector('.kium-sact-st em')?.textContent.trim() || null,
+        };
+      })
+    );
+
+    const bad = [
+      ...strip.filter((x) => !x.oneLine).map((x) => `스트립:${x.tone}`),
+      ...list.filter((x) => !x.oneLine).map((x) => `리스트:${x.tone}`),
+      ...show.filter((x) => !x.oneLine).map((x) => `쇼케이스:${x.status}`),
+    ];
+    ok(
+      `C2 ${w}px 줄바꿈 0건 (스트립 ${strip.length} · 리스트 ${list.length} · 쇼케이스 ${show.length})`,
+      bad.length === 0,
+      bad.length ? bad.join(' / ') : `전건 1행 · 높이 ${[...new Set(strip.map((x) => x.h))].join('/')}px`
+    );
+    if (w === 320) {
+      const worst = show.find((x) => x.seats);
+      ok(
+        'C3 최악 폭 — 320px에서 마감임박+잔여석도 1행',
+        !!worst && worst.oneLine,
+        JSON.stringify(worst)
+      );
+      const cl = show.find((x) => x.status === 'closed');
+      ok('C5 마감 카드 — 버튼 아님 · 배지+링크 1행', cl && cl.isButton === false && cl.oneLine, JSON.stringify(cl));
+    }
+    rows.push({ w, strip: strip.length, list: list.length });
+    await p.close();
+  }
+}
+
+/* C4 — 스트립 CTA 하단 정렬(과정명 1줄 vs 2줄) · C1 · C6 · C7 */
+{
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+
+  // 과정명이 1줄인 카드와 2줄인 카드가 섞여야 정렬 검증이 성립한다 —
+  // 그런 폭을 찾아 그 폭에서 버튼 상단 y가 일치하는지 본다.
+  const measure = async () =>
+    p.locator('.kium-ustrip .kium-scard2').evaluateAll((els) =>
+      els.map((e) => ({
+        // button은 inline-block이라 getClientRects()가 내부 줄바꿈을 반영하지 않는다 → 높이로 센다
+        lines: Math.round(e.querySelector('.kium-scard2-course').getBoundingClientRect().height / 20),
+        btnTop: Math.round(e.querySelector('.kium-sact, .kium-sact-closed').getBoundingClientRect().top),
+      }))
+    );
+  let geo = await measure();
+  let usedW = 1440;
+  for (const w of [1024, 900, 820, 768]) {
+    if ([...new Set(geo.map((g) => g.lines))].length > 1) break;
+    await p.setViewportSize({ width: w, height: 1200 });
+    await p.waitForTimeout(500);
+    geo = await measure();
+    usedW = w;
+  }
+  const tops = [...new Set(geo.map((g) => g.btnTop))];
+  const lineVariety = [...new Set(geo.map((g) => g.lines))];
+  ok(
+    `C4 스트립 CTA 하단 정렬 — 버튼 상단 y 일치 (@${usedW}px)`,
+    tops.length === 1 && lineVariety.length > 1,
+    `줄수 ${lineVariety.join('/')} / 버튼 top ${tops.join(',')}`
+  );
+  await p.setViewportSize(PC);
+  await p.waitForTimeout(400);
+
+  /* C1 — 신청 가능 3상태 라벨 동일 */
+  const labels = await p.locator('.kium-ustrip .kium-sact').evaluateAll((els) =>
+    els.map((e) => `${e.getAttribute('data-tone')}:${e.querySelector('.kium-sact-go').textContent.trim()}`)
+  );
+  const uniq = [...new Set(labels.map((x) => x.split(':')[1]))];
+  ok('C1 신청 가능 3상태 CTA 라벨 = 상담하기 단일', uniq.length === 1 && uniq[0] === '상담하기', labels.join(' / '));
+
+  /* C6 — 접근명에 상태가 남는다 */
+  const aria = await p.locator('.kium-ustrip .kium-sact[data-tone="red"]').first().getAttribute('aria-label');
+  ok('C6 접근명에 상태 유지(마감임박 … 상담하기)', /마감임박 상담하기$/.test(aria || ''), aria);
+  await p.close();
+}
+
+{
+  /* C7 — 쇼케이스 4종 라벨 */
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=badges`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+  const g = await p.locator('.kium-showcase .kium-ustrip .kium-scard2').evaluateAll((els) =>
+    els.map((e) => `${e.getAttribute('data-status')}:${(e.querySelector('.kium-sact-go') || e.querySelector('.kium-cta-next')).textContent.trim()}`)
+  );
+  ok(
+    'C7 쇼케이스 4종 라벨 = 상담하기 ×3 + 다음 회차 상담',
+    g.filter((x) => x.endsWith(':상담하기')).length === 3 && g.some((x) => x === 'closed:다음 회차 상담'),
+    g.join(' / ')
+  );
   await p.close();
 }
 

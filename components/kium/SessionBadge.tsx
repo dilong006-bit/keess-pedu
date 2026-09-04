@@ -45,12 +45,18 @@ export default function SessionBadge({
 
 /** 상태별 CTA 라벨 — 명세 §2-3. 문구는 이 상수 한 곳에만 존재한다 */
 export const CTA_LABEL: Record<KiumSessionStatus, string> = {
-  // 고빈도 2상태만 축약한다(7자 → 4자). 한 화면에 20회 이상 반복되는 문장이라
-  // '이 일정으로'는 정보가 아니라 배경이 된다 — 카드 안에 있으면 그 일정인 것이 자명하다.
+  // [BT-27] 신청 가능 3상태는 라벨이 같다.
+  //   BT-20에서 배지를 버튼 **안으로** 흡수한 뒤로 좌측이 상태를, 우측이 동작을 말한다.
+  //   우측이 상태를 다시 말하면(예: '마감 전 상담') 좌측 배지와 같은 사실이 두 번 나온다.
+  //   v2.0 BT-17이 이 문구를 남긴 근거는 "문구 자체가 상태 정보를 진다"였는데,
+  //   그때는 배지와 CTA가 분리돼 CTA 라벨이 단독으로 읽히는 맥락이었다 — 전제가 바뀌었다.
+  //   정보 손실은 없다: 마감임박은 배지 텍스트 + 아이콘 + 색(#DC2626) + 배경 tint + aria-label
+  //   5중으로 전달되고, 긴박감은 문구가 아니라 red tint가 진다.
   recruiting: '상담하기',
   confirmed: '상담하기',
-  // 아래 둘은 저빈도이고 문구 자체가 상태 정보를 진다 — 줄이면 정보가 사라진다
-  closing: '마감 전 상담',
+  closing: '상담하기',
+  // closed만 다르다 — '다음 회차'는 *다른 회차*를 가리키는 정보이지 상태 반복이 아니다.
+  // 형태도 버튼이 아니라 정적 배지 + 텍스트 링크로 갈린다.
   closed: '다음 회차 상담',
 };
 
@@ -162,7 +168,10 @@ export function SessionAction({
     >
       <span className="kium-sact-st">
         <Icon size={14} />
-        {meta.label}
+        {/* [BT-28] 텍스트 노드로 두면 말줄임이 걸리지 않는다.
+            넘칠 때 줄어드는 쪽은 좌측(상태)이다 — 우측(동작)이 이 버튼의 목적이고,
+            상태는 아이콘·색으로도 부호화돼 있어 글자가 줄어도 판독이 유지된다. */}
+        <span className="kium-sact-lb">{meta.label}</span>
         {status === 'closing' && seatsLeft != null && <em>잔여 {seatsLeft}석</em>}
       </span>
       <span className="kium-sact-go">

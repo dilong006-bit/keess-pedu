@@ -223,17 +223,153 @@ const browser = await chromium.launch();
     `base ${base} / hover ${hover} / focus ${focus}`
   );
 
-  /* 리스트 뷰(.kium-srow)에는 통합을 적용하지 않는다 */
+  /* [BT-22 갱신] 리스트 뷰도 같은 통합 버튼을 쓴다 — v2.1까지의 '미적용' 기대값을 교체 */
   await p.locator('.kium-schedbox-toggle').click();
-  await p.waitForTimeout(500);
+  await p.waitForTimeout(600);
   const rowSact = await p.locator('.kium-srow .kium-sact').count();
-  const rowBadge = await p.locator('.kium-srow .kium-sbadge').count();
-  const rowCta = await p.locator('.kium-srow .kium-cta-ses').count();
+  const rowCta = await p.locator('.kium-srow > .kium-srow-act > .kium-cta-ses').count();
+  const rows = await p.locator('.kium-srow').count();
   ok(
-    'T5 리스트 행은 현행 유지(통합 미적용)',
-    rowSact === 0 && rowBadge > 0 && rowCta > 0,
-    `sact ${rowSact} / badge ${rowBadge} / cta ${rowCta}`
+    'T5 리스트 행도 통합 버튼(BT-22)',
+    rowSact === rows && rows > 0 && rowCta === 0,
+    `행 ${rows} / sact ${rowSact} / 구 CTA ${rowCta}`
   );
+
+  /* 리스트 행 폭 규칙 — 상태 영역이 한 열에 정렬된다 */
+  const stLefts = await p.locator('.kium-srow .kium-sact-st').evaluateAll((els) =>
+    Array.from(new Set(els.map((e) => Math.round(e.getBoundingClientRect().left))))
+  );
+  ok('T6 리스트 상태 영역 좌측 정렬(한 열)', stLefts.length === 1, `left 좌표 ${stLefts.join(',')}`);
+  await p.close();
+}
+
+/* ═══ BT-21 — 상태색이 세 곳에서 동일한가 ════════════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+
+  const iconColor = (loc) => loc.evaluate((el) => getComputedStyle(el.querySelector('svg')).color);
+
+  // ① 필터 칩 (미선택 상태여야 상태색이 보인다 — 선택 시 흰색으로 반전)
+  const chip = {};
+  for (const st of ['recruiting', 'confirmed', 'closing', 'closed']) {
+    chip[st] = await iconColor(p.locator(`.kium-chip-st[data-st="${st}"]`));
+  }
+
+  // ② 스트립 카드 통합 버튼 — 현재 데이터는 전건 recruiting이라 amber만 실측된다
+  const strip = {};
+  for (const [tone, st] of [['amber', 'recruiting'], ['green', 'confirmed'], ['red', 'closing']]) {
+    const loc = p.locator(`.kium-ustrip .kium-sact[data-tone="${tone}"] .kium-sact-st`).first();
+    strip[st] = (await loc.count()) ? await iconColor(loc) : null;
+  }
+
+  // ③ 리스트 행 통합 버튼
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(600);
+  const list = {};
+  for (const [tone, st] of [['amber', 'recruiting'], ['green', 'confirmed'], ['red', 'closing']]) {
+    const loc = p.locator(`.kium-srow .kium-sact[data-tone="${tone}"] .kium-sact-st`).first();
+    list[st] = (await loc.count()) ? await iconColor(loc) : null;
+  }
+
+  for (const st of ['recruiting', 'confirmed', 'closing']) {
+    const vals = [chip[st], strip[st], list[st]].filter(Boolean);
+    ok(
+      `C-${st} 상태색 일치(칩/스트립/리스트)`,
+      new Set(vals).size === 1,
+      `칩 ${chip[st]} / 스트립 ${strip[st] ?? '해당 회차 없음'} / 리스트 ${list[st] ?? '해당 회차 없음'}`
+    );
+  }
+  await p.close();
+}
+
+/* ═══ BT-21 — 4상태 색을 쇼케이스에서 전건 실측 ══════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=badges`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+  const showcase = await p.locator('.kium-showcase .kium-strip .kium-scard2').evaluateAll((els) =>
+    els.map((el) => {
+      const st = el.querySelector('.kium-sact-st svg') || el.querySelector('.kium-sbadge svg');
+      return { status: el.getAttribute('data-status'), color: st ? getComputedStyle(st).color : null };
+    })
+  );
+  const want = {
+    recruiting: 'rgb(180, 83, 9)',
+    confirmed: 'rgb(21, 128, 61)',
+    closing: 'rgb(220, 38, 38)',
+  };
+  for (const [st, exp] of Object.entries(want)) {
+    const got = showcase.find((r) => r.status === st)?.color;
+    ok(`C2-${st} 통합 버튼 아이콘 색 = ${exp}`, got === exp, `실측 ${got}`);
+  }
+  // closed는 .kium-sact-closed 분기 → .kium-sbadge[data-tone="gray"] 배색 유지(변경 금지 대상)
+  const closedBadgeBg = await p
+    .locator('.kium-showcase .kium-strip .kium-scard2[data-status="closed"] .kium-sbadge')
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  ok('C2-closed 마감 배지 pill 배색 무변경(#F3F4F6)', closedBadgeBg === 'rgb(243, 244, 246)', closedBadgeBg);
+  await p.close();
+}
+
+/* ═══ BT-22 2-3 — 마감 '리스트 행'이 한 줄로 유지되는가 ══════════
+   현재 데이터에 closed 회차가 없어(BT-02) 실제 마감 행이 렌더되지 않는다.
+   함정이 되는 규칙은 .kium-srow-act 스코프에만 있으므로 쇼케이스 카드로는 검증되지 않는다
+   → 실제 리스트 행 안에 마감 구조를 주입해 CSS 적용 결과만 측정하고 즉시 제거한다.
+   (데이터·컴포넌트는 건드리지 않는다) */
+{
+  for (const w of [320, 375, 639, 640, 1023, 1024]) {
+    const p = await browser.newPage({ viewport: { width: w, height: 900 } });
+    await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(800);
+    await p.locator('.kium-schedbox-toggle').click();
+    await p.waitForTimeout(600);
+
+    const geo = await p.evaluate(() => {
+      const act = document.querySelector('.kium-srow-act');
+      if (!act) return null;
+      const probe = document.createElement('div');
+      probe.className = 'kium-sact-closed';
+      probe.innerHTML =
+        '<span class="kium-sbadge" data-tone="gray"><svg width="14" height="14"></svg><span>마감</span></span>' +
+        '<button type="button" class="kium-cta-next"><svg width="16" height="16"></svg><span>다음 회차 상담</span></button>';
+      act.appendChild(probe);
+      const badge = probe.querySelector('.kium-sbadge').getBoundingClientRect();
+      const link = probe.querySelector('.kium-cta-next').getBoundingClientRect();
+      const own = probe.getBoundingClientRect();
+      const r = {
+        sameLine: Math.abs(badge.top - link.top) < badge.height,
+        // 함정: 자손 선택자면 링크가 컨테이너 전폭이 되어 배지를 밀어낸다
+        linkFull: Math.round(link.width) >= Math.round(own.width) - 1,
+        badgeW: Math.round(badge.width),
+      };
+      probe.remove();
+      return r;
+    });
+
+    ok(
+      `X ${w}px 마감 리스트 행 한 줄 · 링크 전폭 아님`,
+      !!geo && geo.sameLine && !geo.linkFull && geo.badgeW > 0,
+      JSON.stringify(geo)
+    );
+    await p.close();
+  }
+}
+
+/* 쇼케이스 카드(.kium-scard2)의 마감 형태도 함께 확인 — 카드 스코프 회귀 */
+{
+  const p = await browser.newPage({ viewport: { width: 375, height: 900 } });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=badges`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(800);
+  const geo = await p
+    .locator('.kium-showcase .kium-scard2[data-status="closed"] .kium-sact-closed')
+    .first()
+    .evaluate((el) => {
+      const badge = el.querySelector('.kium-sbadge').getBoundingClientRect();
+      const link = el.querySelector('.kium-cta-next').getBoundingClientRect();
+      return { sameLine: Math.abs(badge.top - link.top) < badge.height, isButton: false };
+    });
+  ok('X-card 375px 마감 카드 한 줄(배지 + 텍스트 링크)', geo.sameLine, JSON.stringify(geo));
   await p.close();
 }
 

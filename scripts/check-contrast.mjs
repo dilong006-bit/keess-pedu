@@ -215,6 +215,45 @@ const CTA_CASES = [
   { name: 'CTA 마감 링크 (#fff / --muted 글자)',       bg: '#ffffff', fg: '#54585f' },
 ];
 
+/* =========================================================================
+   [BT-21] 상태 아이콘 stroke 4색 대비 검증
+   -------------------------------------------------------------------------
+   styles/kium-open.css의 상태색 단일 출처 블록(.kium-chip-st svg / .kium-sact .kium-sact-st svg)을
+   그대로 재현한다. 같은 4색이 필터 칩·스트립 카드·리스트 행 세 곳에서 공유되므로,
+   나타나는 배경 3종 위에서 전부 검사한다.
+
+   ※ 기준선에 관한 사실: 아이콘은 텍스트가 아니라 **그래픽 객체**이므로 WCAG가 요구하는
+     최소 대비는 1.4.11 비텍스트 대비 **3:1**이다. 다만 지시대로 AA(4.5:1) 기준으로도
+     함께 판정해 수치를 남긴다 — 색을 임의로 바꾸지 않고 보고만 한다.
+     이 4색은 상태를 **단독으로** 전달하지 않는다(아이콘 형태 + 상태명 텍스트 병기)는 점도
+     같이 고려해야 한다.
+   ========================================================================= */
+
+/** color-mix(in srgb, <color> <p>%, #fff) 재현 — .kium-sact[data-tone="red"] 배경 계산용 */
+function mixWhite(hex, pct) {
+  const [r, g, b] = parseColor(hex);
+  const m = (c) => Math.round((c * pct + 255 * (100 - pct)) / 100);
+  return `#${[m(r), m(g), m(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** 아이콘이 놓이는 배경 3종 */
+const ICON_BGS = [
+  { key: 'card', label: '카드/칩 기본 #fff', bg: '#ffffff' },
+  { key: 'hover', label: 'hover --surface', bg: '#F3F5F8' },
+  // .kium-sact[data-tone="red"]{background:color-mix(in srgb,var(--p2) 10%,#fff)}
+  { key: 'redbtn', label: '마감임박 버튼 배경', bg: mixWhite('#E91E63', 10) },
+];
+
+/** 상태 아이콘 stroke — 필터 칩·통합 버튼 공유 단일 출처 */
+const ICON_COLORS = [
+  { key: 'recruiting', label: '모집중', fg: '#B45309', on: ['card', 'hover'] },
+  { key: 'confirmed', label: '개강확정', fg: '#15803D', on: ['card', 'hover'] },
+  // 마감임박 아이콘은 red 톤 버튼 배경 위에도 놓인다
+  { key: 'closing', label: '마감임박', fg: '#DC2626', on: ['card', 'hover', 'redbtn'] },
+  // closed는 .kium-sact-closed 분기라 통합 버튼에 도달하지 않는다 — 필터 칩 배경만
+  { key: 'closed', label: '마감', fg: '#6B7280', on: ['card', 'hover'] },
+];
+
 function relLum(hex) {
   const [r, g, b] = parseColor(hex);
   const f = (c) => {
@@ -258,6 +297,44 @@ for (const c of CTA_CASES) {
     등급: ratio >= AAA ? 'AAA' : ratio >= AA ? 'AA' : '미달',
   });
 }
+
+/** 비텍스트(그래픽 객체) 최소 대비 — WCAG 1.4.11 */
+const NON_TEXT = 3.0;
+const iconRows = [];
+let iconBelowNonText = 0;
+let iconBelowAA = 0;
+let iconMin = Infinity;
+
+for (const c of ICON_COLORS) {
+  for (const bgKey of c.on) {
+    const b = ICON_BGS.find((x) => x.key === bgKey);
+    const ratio = contrast(c.fg, b.bg);
+    if (ratio < NON_TEXT) iconBelowNonText++;
+    if (ratio < AA) iconBelowAA++;
+    iconMin = Math.min(iconMin, ratio);
+    iconRows.push({
+      대상: `아이콘 ${c.key} (${c.label})`,
+      배경: `${b.bg} — ${b.label}`,
+      stroke: c.fg,
+      대비: `${ratio.toFixed(2)}:1`,
+      '비텍스트 3:1': ratio >= NON_TEXT ? '통과' : '미달',
+      'AA 4.5:1': ratio >= AA ? '통과' : '미달',
+    });
+  }
+}
+
+console.log('\n[BT-21] 상태 아이콘 stroke 대비 — 비텍스트 3:1(적용 기준) / AA 4.5:1(참고)');
+console.table(iconRows);
+if (iconBelowNonText > 0) {
+  console.error(`\n✗ 비텍스트 3:1 미달 ${iconBelowNonText}건 — 상태색 단일 출처 블록 재검토 필요.`);
+  process.exit(1);
+}
+console.log(
+  `✓ 아이콘 전건 비텍스트 3:1 통과 — 최저 ${iconMin.toFixed(2)}:1` +
+    (iconBelowAA > 0
+      ? ` · 참고: AA 4.5:1 기준으로는 ${iconBelowAA}건 미달(아이콘은 텍스트가 아니며 상태명 텍스트가 병기된다)`
+      : ' · AA 4.5:1도 전건 통과')
+);
 
 console.log('\n공개교육 모집 상태 4톤 + 상태별 CTA 대비 검증 — WCAG AA 4.5:1');
 console.table(badgeRows);

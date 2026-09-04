@@ -103,11 +103,19 @@
    선택 표시는 .kium-chip[aria-pressed="true"]의 네이비 반전이 그대로 담당한다.
    (색을 못 보는 조건에서도 아이콘 형태 + 상태명 텍스트로 4종이 갈린다) */
 .kium-chip-st svg{flex:none}
-.kium-chip-st[data-st="recruiting"] svg{color:#B45309}
-.kium-chip-st[data-st="confirmed"] svg{color:#15803D}
-.kium-chip-st[data-st="closing"] svg{color:#DC2626}
+/* 상태색 단일 출처 — 필터 칩과 회차 통합 버튼이 같은 선언을 공유한다.
+   상태 구분은 '아이콘 stroke 한 축'뿐이라는 기존 규칙을 통합 버튼까지 넓힌 것이며,
+   여기 쓰인 4색은 전부 기존 값이다(신규 색 아님).
+   셀렉터를 묶는 것이 핵심이다 — 값을 두 벌 적으면 나중에 한쪽만 바뀐다.
+   라벨 텍스트는 칠하지 않는다 — 버튼에 이미 좌(상태)·우(--p1 동작) 두 색이 있다. */
+.kium-chip-st[data-st="recruiting"] svg,
+.kium-sact[data-tone="amber"] .kium-sact-st svg{color:#B45309}
+.kium-chip-st[data-st="confirmed"] svg,
+.kium-sact[data-tone="green"] .kium-sact-st svg{color:#15803D}
+.kium-chip-st[data-st="closing"] svg,
+.kium-sact[data-tone="red"] .kium-sact-st svg{color:#DC2626}
 .kium-chip-st[data-st="closed"] svg{color:#6B7280}
-/* 선택 시에는 칩 전체가 네이비라 아이콘도 흰색으로 넘어간다 */
+/* 선택 시에는 칩 전체가 네이비라 아이콘도 흰색으로 넘어간다 — 반드시 위 규칙들보다 뒤 */
 .kium-chip-st[aria-pressed="true"] svg{color:#fff}
 
 .kium-sched-head{margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;
@@ -147,6 +155,16 @@
 .kium-srow-meta .num{font-weight:800;color:var(--p1);font-variant-numeric:tabular-nums}
 .kium-srow-meta i{font-style:normal;font-size:11.5px}
 .kium-srow-act{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+/* 리스트 행에서도 같은 통합 버튼을 쓴다 — 카드와 다른 것은 폭 규칙뿐이다(BT-22).
+   상태 영역을 고정폭으로 잡아 여러 행에서 세로로 정렬시킨다.
+   리스트는 훑는 화면이라, pill을 걷어내도 상태가 한 열에 서야 스캔이 유지된다. */
+.kium-srow-act .kium-sact{width:auto;min-width:184px;margin-top:0}
+.kium-srow-act .kium-sact-st{min-width:74px}
+.kium-srow-act .kium-sact-closed{width:auto;margin-top:0}
+@media(max-width:1023px){
+  .kium-srow-act .kium-sact,
+  .kium-srow-act .kium-sact-closed{width:100%}
+}
 
 @media(max-width:1023px){
   .kium-srow{grid-template-columns:1fr;gap:10px}
@@ -155,7 +173,9 @@
 @media(max-width:479px){
   .kium-srow{padding:14px 16px}
   .kium-srow-act{flex-wrap:wrap}
-  .kium-srow-act .kium-cta-ses,.kium-srow-act .kium-cta-next{width:100%}
+  /* 직계 자식으로 좁힌다 — 자손 선택자면 .kium-sact-closed 안의 텍스트 링크까지 잡아
+     마감 행에서 링크가 전폭이 되며 배지를 밀어낸다(BT-22 2-3) */
+  .kium-srow-act>.kium-cta-ses,.kium-srow-act>.kium-cta-next{width:100%}
 }
 
 /* ── 과정별 뷰 ────────────────────────────────────────────────── */
@@ -320,7 +340,6 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 .kium-sact[data-tone="red"]{background:color-mix(in srgb,var(--p2) 10%,#fff);
   border-color:color-mix(in srgb,var(--p2) 32%,#fff)}
 .kium-sact[data-tone="red"] .kium-sact-go{color:var(--p2)}
-.kium-sact[data-tone="green"] .kium-sact-st{color:var(--p1)}
 /* 마감 — 버튼이 아니라 정적 배지 + 텍스트 링크. 형태로 구분한다 */
 .kium-sact-closed{display:flex;align-items:center;justify-content:space-between;gap:10px;
   width:100%;margin-top:2px}

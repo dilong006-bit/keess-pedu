@@ -1,6 +1,6 @@
 'use client';
 
-import SessionBadge, { SessionCta } from './SessionBadge';
+import { SessionAction } from './SessionBadge';
 import { IconArrowRight, IconCalendarDays, IconClock, IconWallet } from './kiumIcons';
 import { KIUM_CATEGORY_META } from '@/lib/kium/data';
 import { getCourseById } from '@/lib/kium/queries';
@@ -108,9 +108,20 @@ export default function SessionListView({
                       </span>
                     </p>
 
+                    {/* [BT-22] 카드와 같은 통합 버튼을 쓴다. 명세 v2.1 §5-5는 "가로 배치라
+                        세로 절약 효과가 없다"며 리스트를 제외했지만, 실제 CSS는 ≤1023px에서
+                        .kium-srow가 1열로 접히고 ≤479px에서 CTA가 전폭이 되어 배지 1줄 + 버튼 1줄
+                        = 2줄이 된다. 카드에서 고친 것과 같은 구조가 모바일 리스트에 남아 있었다.
+                        스트립↔리스트는 BT-18에서 같은 자리 토글 교체이므로 형태까지 달라지면
+                        인지 비용이 생긴다. 다른 것은 폭 규칙(.kium-srow-act 스코프)뿐이다. */}
                     <div className="kium-srow-act">
-                      <SessionBadge status={st} seatsLeft={s.seatsLeft} />
-                      <SessionCta status={st} label={a11y} onClick={() => onConsultSession(s)} />
+                      <SessionAction
+                        status={st}
+                        seatsLeft={s.seatsLeft}
+                        label={a11y}
+                        onClick={() => onConsultSession(s)}
+                        onNext={() => onConsultSession(s)}
+                      />
                     </div>
                   </li>
                 );

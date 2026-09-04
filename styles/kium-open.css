@@ -280,6 +280,13 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   padding:0;font-size:14px;font-weight:800;color:var(--p1);text-decoration:underline;
   text-underline-offset:3px;transition:color .18s var(--ease)}
 .kium-openlead-link:hover,.kium-openlead-link:focus-visible{color:var(--ink)}
+/* 공백 문자는 줄바꿈 위치에 따라 사라진다 — 간격을 여백으로 고정한다 */
+.kium-openlead-link{margin-left:12px}
+@media(max-width:639px){
+  /* 좁은 폭에서는 문장 뒤에 매달리지 않고 블록으로 내려 44px 타깃을 확보한다 */
+  .kium-openlead-link{display:flex;margin-left:0;margin-top:10px;min-height:44px;
+    align-items:center;justify-content:flex-start}
+}
 
 /* ── 공개교육 보기 등장 ─────────────────────────────────────────
    200ms 1회. 무엇이 새로 생겼는지 알아챌 정도만 — 그 이상은 대기 시간이 된다 */
@@ -298,7 +305,57 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 /* ── 다가오는 일정 스트립 ───────────────────────────────────────
    상세 패널 스트립(.kium-strip)과 카드는 같지만 배치가 다르다 — 여기는 여러 과정이 섞인
    일정 축이라 열 수를 고정하지 않고 스크롤+peek로 "뒤에 더 있다"를 알린다 */
-.kium-ustrip-wrap{margin-top:14px}
+/* ── 회차 카드 상태·CTA 통합 버튼 (BT-20) ────────────────────────
+   좌: 상태(아이콘+라벨) / 우: 동작. 요소 2개를 1개로 합치고 라벨에 동작을 남긴다 */
+.kium-sact{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-height:44px;margin-top:2px;padding:0 12px;
+  border:1px solid var(--line);border-radius:10px;background:#fff;
+  font-size:13px;font-weight:700;color:var(--ink);
+  transition:border-color .18s var(--ease),background .18s var(--ease)}
+.kium-sact:hover,.kium-sact:focus-visible{border-color:var(--p1);background:var(--surface)}
+.kium-sact-st{display:inline-flex;align-items:center;gap:5px;flex:none}
+.kium-sact-st em{font-style:normal;font-size:11.5px;font-weight:700;color:var(--muted);margin-left:2px}
+.kium-sact-go{display:inline-flex;align-items:center;gap:4px;color:var(--p1);font-weight:800}
+/* 마감임박만 지면에서 유일하게 강조 — 긴박감이 곧 정보다 */
+.kium-sact[data-tone="red"]{background:color-mix(in srgb,var(--p2) 10%,#fff);
+  border-color:color-mix(in srgb,var(--p2) 32%,#fff)}
+.kium-sact[data-tone="red"] .kium-sact-go{color:var(--p2)}
+.kium-sact[data-tone="green"] .kium-sact-st{color:var(--p1)}
+/* 마감 — 버튼이 아니라 정적 배지 + 텍스트 링크. 형태로 구분한다 */
+.kium-sact-closed{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;margin-top:2px}
+@media(max-width:479px){
+  .kium-sact{padding:0 10px;font-size:12.5px}
+}
+
+/* ── 일정 영역 컨테이너 (BT-18) ─────────────────────────────────
+   헤더·본문·토글을 한 덩어리로 묶어 "이 안이 일정이다"를 경계로 말한다.
+   본문은 요약(스트립)과 전체(리스트)를 **갈아 끼우는** 자리다 — 덧붙이지 않는다. */
+.kium-schedbox{margin-top:20px;background:#fff;border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden}
+.kium-schedbox-head{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+/* 헤더 행 안에서는 모드 헤더가 세로로 쌓인다 — 우측은 토글이 쓴다.
+   구분선은 헤더 행이 이미 그으므로 모드 헤더 자신의 선은 지운다(선 중복 방지) */
+.kium-schedbox-head .kium-modehead{flex-direction:column;align-items:flex-start;gap:4px;
+  padding-bottom:0;border-bottom:0;min-width:0}
+.kium-schedbox-toggle{display:inline-flex;align-items:center;gap:6px;flex:none;
+  min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;
+  background:var(--surface);font-size:13px;font-weight:700;color:var(--ink);
+  transition:border-color .18s var(--ease),background .18s var(--ease)}
+.kium-schedbox-toggle:hover,.kium-schedbox-toggle:focus-visible{border-color:var(--p1)}
+.kium-schedbox-toggle svg{transition:transform .2s var(--ease)}
+.kium-schedbox-toggle .is-up{transform:rotate(180deg)}
+.kium-schedbox-body{padding:16px 18px;transition:opacity 120ms var(--ease)}
+@media(max-width:639px){
+  .kium-schedbox-head{flex-direction:column;align-items:stretch;padding:14px 14px 12px}
+  .kium-schedbox-toggle{width:100%;justify-content:center}
+  .kium-schedbox-body{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .kium-schedbox-body{transition:none}
+  .kium-schedbox-toggle svg{transition:none}
+}
 .kium-ustrip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(212px,1fr);gap:10px;
   overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;
   -webkit-overflow-scrolling:touch}
@@ -312,23 +369,25 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 .kium-ustrip-none{margin-top:0;padding-top:0;border-top:0}
 /* 과정명 1줄 — 날짜(헤드라인)보다 작고, 카드 안에서 유일한 텍스트 링크다 */
 /* 히트 영역만 44px로 넓힌다 — padding을 같은 크기의 음수 margin으로 상쇄하므로
-   카드 안 세로 리듬(gap 8px)은 그대로다. 위아래 이웃은 비인터랙티브 요소라 겹쳐도 무해하다 */
+   카드 안 세로 리듬(gap 8px)은 그대로다. 위아래 이웃은 비인터랙티브 요소라 겹쳐도 무해하다.
+   [v2.1 §5-4] 기본 상태에 밑줄을 두지 않는다 — 스트립 6장 + 상세 패널에 반복돼 시각 노이즈가 된다.
+   다만 --p1과 이웃 --muted의 대비가 약 1.7:1로 WCAG G183의 3:1에 미달하므로 색만으로는
+   어포던스가 부족하다 → hover·focus-visible에서 밑줄을 **복원**한다(종전에는 색만 바뀌었다).
+   「전체 일정」 리스트의 .kium-srow-title이 정적 텍스트라 두 뷰의 시각도 이로써 통일된다. */
 .kium-scard2-course{border:0;background:transparent;text-align:left;
   padding:12px 0;margin:-12px 0;
   font-size:13.5px;font-weight:800;color:var(--p1);line-height:1.45;word-break:keep-all;
-  text-decoration:underline;text-underline-offset:3px;transition:color .18s var(--ease)}
-.kium-scard2-course:hover,.kium-scard2-course:focus-visible{color:var(--ink)}
+  text-decoration:none;text-underline-offset:3px;transition:color .18s var(--ease)}
+.kium-scard2-course:hover,.kium-scard2-course:focus-visible{color:var(--ink);text-decoration:underline}
 .kium-scard2-course.is-static{text-decoration:none;color:var(--ink)}
 @media(max-width:767px){
   .kium-ustrip{grid-auto-columns:82%}
 }
 
 /* 전체 일정 전개 — PC/TB 인라인 텍스트 버튼 / MO 풀폭 버튼 */
-.kium-ustrip-foot{margin-top:8px;display:flex;justify-content:flex-end}
-.kium-ustrip-foot .kium-ustrip-all{width:100%;justify-content:center}
-.kium-ustrip-foot svg{transition:transform .2s var(--ease)}
-.kium-ustrip-foot svg.is-up{transform:rotate(180deg)}
-.kium-ulist{margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
+/* 전체 일정 목록 — 컨테이너 본문에서 스트립과 자리를 바꾼다.
+   자체 구분선은 두지 않는다(헤더 행 선과 겹친다) */
+.kium-ulist{margin-top:0}
 
 /* ── 전체 보기 카드의 개설 뱃지 ─────────────────────────────────
    카드(button) 바깥 형제라 확장 토글과 이벤트가 섞이지 않는다.
@@ -373,10 +432,6 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 
 /* 기간 칩 단위 (BT-04) — 숫자는 등폭, 단위는 일반 서체 */
 .kium-chip .cnt i{font-style:normal;font-variant-numeric:normal;margin-left:1px;font-weight:700}
-
-/* 보기 전환 결과 문구 시각 노출 (BT-11) */
-.kium-livenote{margin-top:10px;font-size:13px;color:var(--muted);
-  font-variant-numeric:tabular-nums}
 
 /* 공개교육 전용 pill 구분 (BT-08) — 위탁 공통 정보(대상·형태·시간·정원)와 시각 분리 */
 .kium-pill[data-open]{background:color-mix(in srgb,var(--p3) 7%,#fff);

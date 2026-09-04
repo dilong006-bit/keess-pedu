@@ -1,6 +1,6 @@
 'use client';
 
-import SessionBadge, { SessionCta } from './SessionBadge';
+import SessionBadge, { SessionAction, SessionCta } from './SessionBadge';
 import {
   IconAlarmClock,
   IconCalendarDays,
@@ -65,7 +65,7 @@ export function SessionPill({
       className="kium-pill-ses"
       data-tone={KIUM_SESSION_META[st].tone}
       onClick={() => onConsult(session)}
-      aria-label={`${label} 이 일정으로 상담`}
+      aria-label={`${label} 상담하기`}
     >
       <Icon size={14} />
       <span>{fmtRangeShort(session)}</span>
@@ -122,8 +122,15 @@ export function SessionCard({
         ) : (
           <p className="kium-scard2-course is-static">{course.titleMarketing}</p>
         ))}
-      <SessionBadge status={st} seatsLeft={session.seatsLeft} />
-      <SessionCta status={st} label={a11y} onClick={() => onConsult(session)} />
+      {/* 상태와 행동을 한 버튼으로 — 카드 요소 5개 → 4개(v2.1 §5-5).
+          onNext도 같은 핸들러다: consultSession()이 마감 회차를 경로 B로 넘긴다(기존 로직). */}
+      <SessionAction
+        status={st}
+        seatsLeft={session.seatsLeft}
+        label={a11y}
+        onClick={() => onConsult(session)}
+        onNext={() => onConsult(session)}
+      />
     </div>
   );
 }

@@ -163,14 +163,13 @@ export default function KiumCoursesTab() {
   }, []);
 
   /* ── 보기 전환 ───────────────────────────────────────────────────────
-     ①앵커 보정 ②등장 페이드인 ③aria-live 안내. 셋 다 "화면이 튀었다"를 막기 위한 것이다 */
+     ①앵커 보정 ②등장 페이드인. "화면이 튀었다"를 막기 위한 것이다.
+     전환 사실 자체는 고지하지 않는다(v2.0 §3-6) — 세그먼트 aria-pressed 변화 · 필터 행 등장 ·
+     헤더 문구 변화가 이미 3중으로 알린다. aria-live 통로는 '필터 결과 건수'에 쓴다. */
   const changeMode = useCallback(
     (next: Mode, opts?: { anchor?: boolean }) => {
       setMode(next);
       syncQuery({ mode: next });
-      setLive(
-        next === 'open' ? '공개교육 일정 보기로 전환되었습니다' : '전체 과정 보기로 전환되었습니다'
-      );
 
       const rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (!rm) {
@@ -317,6 +316,19 @@ export default function KiumCoursesTab() {
   ]
     .filter(Boolean)
     .join(' · ');
+
+  /**
+   * aria-live 통로의 용도 — **필터 결과 건수**(v2.0 §3-6).
+   * 섹션 헤더는 시각적으로 갱신되지만 스크린리더는 그 변화를 스스로 감지하지 못한다.
+   * 전체 보기에는 회차 개념이 없으므로 비운다.
+   */
+  useEffect(() => {
+    if (!isOpenMode) {
+      setLive('');
+      return;
+    }
+    setLive(`${scopeLabel} ${visible.length}개 회차`);
+  }, [isOpenMode, scopeLabel, visible.length]);
   const monthCount = (m: 10 | 11 | 12) => future.filter((s) => s.displayMonth === m).length;
   const openFaq = getOpenFaq();
 
@@ -332,7 +344,7 @@ export default function KiumCoursesTab() {
             aria-pressed={!isOpenMode}
             onClick={() => changeMode('all')}
           >
-            전체 과정 <span className="cnt">{allCourses.length}</span>
+            전체과정 <span className="cnt">{allCourses.length}</span>
           </button>
           <button
             type="button"
@@ -446,14 +458,11 @@ export default function KiumCoursesTab() {
         )}
       </div>
 
-      {/* 보기 전환 안내 — 화면에도 보이고 낭독도 된다.
-          .kium-sr로 숨겨 두면 눈으로 보는 사용자는 무엇이 바뀌었는지 알 수 없다.
-          빈 문자열이면 렌더하지 않는다(빈 줄 방지). */}
-      {live && (
-        <p className="kium-livenote" aria-live="polite">
-          {live}
-        </p>
-      )}
+      {/* 필터 결과 고지 — 시각으로는 섹션 헤더가 이미 말하므로 낭독 전용이다(v2.0 §3-6).
+          조건부로 감싸지 않는다 — aria-live 영역은 내용이 바뀌기 **전부터** DOM에 있어야 읽힌다. */}
+      <p className="kium-sr" aria-live="polite">
+        {live}
+      </p>
 
       {/* 카드의 '정부지원 환급' 배지를 뺀 자리에 **대체 문구를 두지 않는다**(명세 v1.1 §3-4).
           히어로가 탭 위에서 이미 "훈련비의 90~95%는 환급 받고"를 말하고, 사업소개 탭 전체가
@@ -465,14 +474,18 @@ export default function KiumCoursesTab() {
           자연 줄바꿈으로 흘린다(<br> 금지, word-break:keep-all은 CSS가 담당) ── */}
       {!isOpenMode && (
         <p className="kium-openlead">
-          혼자서도 부담 없이 신청할 수 있는 공개교육 과정을 확인해보세요.{' '}
+          혼자서도 부담 없이 신청할 수 있는 공개교육 과정을 확인해보세요.
+          {/* 앞 문장이 이미 '공개교육'과 '확인해보세요'를 말한다 — 링크는 남은 정보만 진다.
+              시각은 짧게, 낭독은 온전하게: 접근명에만 전체 맥락을 담는다.
+              공백 문자는 줄바꿈 위치에 따라 사라지므로 간격은 CSS가 준다(§8). */}
           <button
             type="button"
             className="kium-openlead-link"
+            aria-label="공개교육 일정 보기"
             data-evt="kium_mode_open"
             onClick={() => changeMode('open')}
           >
-            공개교육 일정 보기
+            일정 보기
             <IconArrowRight size={16} />
           </button>
         </p>
@@ -510,20 +523,22 @@ export default function KiumCoursesTab() {
             </div>
           ) : (
             <>
-              {/* 모드 헤더 1줄 — 3-스탯 카드 행을 대신한다. 회차 수는 필터와 연동된다 */}
-              <div className="kium-modehead">
-                <p className="kium-modehead-t">
-                  공개교육 일정 <span className="sep">·</span> {scopeLabel} <b>{visible.length}</b>개
-                  회차
-                </p>
-                <p className="kium-modehead-s">1명부터 신청 가능 · 정부지원 환급</p>
-              </div>
-
+              {/* 모드 헤더는 별도로 렌더하지 않는다 — 일정 컨테이너의 헤더 행으로 들어간다(§3-10).
+                  '정부지원 환급'은 뺐다(§3-9) — 히어로·사업소개 탭이 이미 말하는 사실이다. */}
               <UpcomingSessionsStrip
                 sessions={visible}
                 now={now}
                 onConsultSession={onConsultSession}
                 onCourseFocus={onCourseFocus}
+                header={
+                  <div className="kium-modehead">
+                    <p className="kium-modehead-t">
+                      공개교육 일정 <span className="sep">·</span> {scopeLabel}{' '}
+                      <b>{visible.length}</b>개 회차
+                    </p>
+                    <p className="kium-modehead-s">1명부터 신청 가능</p>
+                  </div>
+                }
               />
             </>
           )}

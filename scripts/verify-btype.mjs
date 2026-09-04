@@ -72,7 +72,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   ok('C1 딥링크 완전 렌더(모드 헤더+스트립)', cards > 0 && /공개교육 일정/.test(head), `${head} / 카드 ${cards}`);
   ok('C2 3-스탯 카드 행 미생성', (await page.locator('.kium-open-stats').count()) === 0);
   await page.screenshot({ path: `${OUT}/02-open-pc.png`, fullPage: true });
-  await page.locator('.kium-ustrip-wrap').screenshot({ path: `${OUT}/03-strip-pc.png` });
+  await page.locator('.kium-schedbox').screenshot({ path: `${OUT}/03-strip-pc.png` });
   await page.close();
 }
 
@@ -83,7 +83,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
 
   const segAll = await seg(page, 'all').innerText();
   const segOpen = await seg(page, 'open').innerText();
-  ok('D1 세그먼트 라벨·카운트(양쪽 과정 수)', /전체 과정\s*19/.test(segAll) && /^공개교육\s*9$/.test(segOpen.replace(/\s+/g, ' ').trim()), `${segAll} | ${segOpen}`);
+  ok('D1 세그먼트 라벨·카운트(양쪽 과정 수)', /전체과정\s*19/.test(segAll) && /^공개교육\s*9$/.test(segOpen.replace(/\s+/g, ' ').trim()), `${segAll} | ${segOpen}`);
   ok('D2 필터 칩 형태 아님(세그먼트)', (await page.locator('.kium-modeseg').count()) === 1);
 
   const before = {
@@ -110,7 +110,12 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
      after.strip === 1 && after.head === 1 && after.next === 9 && after.month === 1 && after.st === 1,
      JSON.stringify(after));
   ok('D6 URL mode=open 동기화', page.url().includes('mode=open'), page.url().replace(BASE, ''));
-  ok('D7 aria-live 안내', (await page.locator('.kium-livenote').innerText()).includes('공개교육 일정 보기로 전환'));
+  const liveTxt = (await page.locator('.kium-coursesview > .kium-sr[aria-live]').innerText()).trim();
+  ok(
+    'D7 aria-live = 필터 결과 건수(전환 안내 아님)',
+    /개 회차$/.test(liveTxt) && (await page.locator('.kium-livenote').count()) === 0,
+    liveTxt
+  );
 
   // 새로고침 유지
   await page.reload({ waitUntil: 'networkidle' });
@@ -168,16 +173,20 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   ok('E6 하이라이트 2초 후 해제', (await page.locator('.kium-card-wrap.is-flash').count()) === 0);
 
   // 전체 일정 인라인 전개 · 재클릭 접힘
-  await page.locator('.kium-ustrip-foot button').click();
+  await page.locator('.kium-schedbox-toggle').click();
   await page.waitForTimeout(400);
   const groups = await page.locator('.kium-ulist .kium-mgroup').count();
   const monthCta = await page.locator('.kium-ulist .kium-cta-quiet').count();
-  ok('E7 PC 전체 일정 인라인 전개(월 그룹)', groups > 0, `${groups}개 월 그룹`);
+  const stripGone = await page.locator('.kium-ustrip').count();
+  ok('E7 PC 전체 일정 전개(월 그룹) + 스트립 소멸', groups > 0 && stripGone === 0, `${groups}개 월 그룹 / 스트립 ${stripGone}`);
   ok('E8 경로 C 트리거 미렌더', monthCta === 0);
   await page.locator('.kium-ulist').screenshot({ path: `${OUT}/04-alllist-pc.png` });
-  await page.locator('.kium-ustrip-foot button').click();
+  await page.locator('.kium-schedbox-toggle').click();
   await page.waitForTimeout(300);
-  ok('E9 재클릭 접힘', (await page.locator('.kium-ulist').count()) === 0);
+  ok(
+    'E9 재클릭 접힘 → 스트립 복귀',
+    (await page.locator('.kium-ulist').count()) === 0 && (await page.locator('.kium-ustrip').count()) === 1
+  );
   await page.close();
 }
 
@@ -188,9 +197,9 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   await page.waitForTimeout(700);
   const n = await page.locator('.kium-ustrip .kium-scard2').count();
   ok('F1 MO 스트립 3장', n === 3, `${n}장`);
-  const btn = page.locator('.kium-ustrip-foot button');
+  const btn = page.locator('.kium-schedbox-toggle');
   const label = await btn.innerText();
-  ok('F2 MO 풀폭 「전체 일정 보기 (n개 회차)」', /전체 일정 보기 \(\d+개 회차\)/.test(label), label.trim());
+  ok('F2 MO 풀폭 토글 「전체 일정 N개 회차」', /^전체 일정 \d+개 회차$/.test(label.trim()), label.trim());
   await page.screenshot({ path: `${OUT}/02-open-mo.png`, fullPage: true });
   await btn.click();
   await page.waitForTimeout(400);
@@ -270,7 +279,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   // 경로 A — 스트립 CTA
   await page.goto(BASE + '/kium?tab=courses&mode=open', { waitUntil: 'networkidle' });
   await page.waitForTimeout(600);
-  await page.locator('.kium-ustrip .kium-cta-ses, .kium-ustrip .kium-cta-next').first().click();
+  await page.locator('.kium-ustrip .kium-sact').first().click();
   await page.waitForTimeout(900);
   v = await ta().inputValue();
   ok('I3 경로 A 프리필(과정+희망 회차)', v.includes('· 과정명:') && v.includes('· 희망 회차:'), v.split('\n')[2]);
@@ -287,7 +296,7 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   await page.goto(BASE + '/kium?tab=courses&mode=open', { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
   const closedRows = await page.locator('[data-status="closed"]').count();
-  await page.locator('.kium-ustrip-foot button').click();
+  await page.locator('.kium-schedbox-toggle').click();
   await page.waitForTimeout(500);
   const closedAll = await page.locator('.kium-ulist [data-status="closed"]').count();
   ok('I6 마감 노출 0건(status 시드 제거)', closedRows === 0 && closedAll === 0, `스트립 ${closedRows} / 전체 일정 ${closedAll}`);

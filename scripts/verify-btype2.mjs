@@ -52,12 +52,22 @@ const browser = await chromium.launch();
   const segOpen = (await seg(p, 1).innerText()).replace(/\s+/g, ' ').trim();
   ok('Q1 세그먼트 `전체 과정 19` / `공개교육 9`', segAll === '전체 과정 19' && segOpen === '공개교육 9', `${segAll} | ${segOpen}`);
 
-  ok('Q2 전체 보기 승격 1줄', (await p.locator('.kium-allhead').innerText()) === '모든 과정이 정부지원 환급 대상입니다');
+  // v1.1 §3-4 — 배지만 제거하고 대체 문구는 두지 않는다
+  const panel = p.locator('#kium-tabpanel-courses');
+  const panelText = await panel.innerText();
+  ok('Q2 전체 보기 환급 문구·배지 0건', (await p.locator('.kium-allhead').count()) === 0 && !panelText.includes('정부지원 환급'), `allhead ${await p.locator('.kium-allhead').count()} / 문구 ${panelText.includes('정부지원 환급')}`);
   ok('Q3 정부지원 환급 칩 렌더 0건', (await p.locator('.kium-card .kium-badge.gov').count()) === 0);
+  // 히어로·사업소개 탭은 무변경이어야 한다(환급 설명은 그쪽 소관)
+  const heroText = await p.locator('.kium-hero').innerText();
+  ok('Q3-b 히어로 환급 카피 무변경', heroText.includes('환급'), heroText.split('\n')[0].slice(0, 30));
   ok('Q4 공개교육 뱃지는 존치(9건)', (await p.locator('.kium-openflag').count()) === 9);
 
   const lead = (await p.locator('.kium-openlead').innerText()).replace(/\s+/g, ' ');
-  ok('Q5 인트로 카피 교체', lead.startsWith('인원이 적어도 괜찮습니다.') && !lead.includes('혼자'), lead.slice(0, 46));
+  ok(
+    'Q5 인트로 카피 = 사업 확정본',
+    lead.startsWith('혼자서도 부담 없이 신청할 수 있는 공개교육 과정을 확인해보세요.'),
+    lead.slice(0, 50)
+  );
 
   await seg(p, 1).click();
   await p.waitForTimeout(700);
@@ -94,6 +104,9 @@ const browser = await chromium.launch();
       h2 === '공개교육 일정 · 12월 · 모집중 8개 회차',
     `${h0} → ${h1} → ${h2}`
   );
+
+  const modeSub = (await p.locator('.kium-modehead-s').innerText()).replace(/\s+/g, ' ').trim();
+  ok('Q9-b 공개교육 보기 스탯 줄 무변경', modeSub === '1명부터 신청 가능 · 정부지원 환급', modeSub);
 
   ok('Q10 결과 문구 시각 노출(.kium-livenote)', (await p.locator('.kium-livenote').count()) === 1 &&
      (await p.locator('.kium-livenote').getAttribute('aria-live')) === 'polite',

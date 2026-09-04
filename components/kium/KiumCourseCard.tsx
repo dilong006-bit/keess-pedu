@@ -86,7 +86,7 @@ export default function KiumCourseCard({
           {/* [B-Type 고도화 §5-1] 정부지원 환급 배지는 렌더하지 않는다.
               19/19 전 카드에 붙던 라벨이라 변별력이 0이고, 지면에서 가장 진한 색(--gov)이라
               카드마다 다른 대상·시간보다 먼저 읽혔다. 스크린리더는 카탈로그를 훑을 때 19번 반복 낭독했다.
-              같은 사실은 섹션 승격 1줄(.kium-allhead)이 한 번만 말한다.
+              대체 문구도 두지 않는다(v1.1 §3-4) — 히어로와 사업소개 탭이 이미 환급을 말한다.
               CSS 규칙 .kium-badge.gov는 남겨 둔다(전역 검색 결과 다른 사용처는 없으나 토큰 삭제는 별건). */}
           {/* 펼침 방향 인디케이터 — .kium-elig-chev(KiumEligibility)와 동일 패턴 재사용 */}
           <ChevronDown className="kium-card-chev" size={16} aria-hidden="true" />

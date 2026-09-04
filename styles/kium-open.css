@@ -374,9 +374,6 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 /* 기간 칩 단위 (BT-04) — 숫자는 등폭, 단위는 일반 서체 */
 .kium-chip .cnt i{font-style:normal;font-variant-numeric:normal;margin-left:1px;font-weight:700}
 
-/* 전체 보기 승격 1줄 (BT-06) — 공개교육 보기 .kium-modehead-s와 같은 무게 */
-.kium-allhead{margin-top:16px;font-size:13.5px;font-weight:700;color:var(--muted)}
-
 /* 보기 전환 결과 문구 시각 노출 (BT-11) */
 .kium-livenote{margin-top:10px;font-size:13px;color:var(--muted);
   font-variant-numeric:tabular-nums}

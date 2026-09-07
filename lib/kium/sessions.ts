@@ -69,6 +69,15 @@ export const KIUM_STATUS_ORDER: KiumSessionStatus[] = ['recruiting', 'confirmed'
  *     요일을 저장하지 않고 start에서 파생하는 설계 자체는 유효하다 —
  *     확정 날짜만 넣으면 화면에 12.16(수) ~ 17(목)으로 정확히 출력된다.
  *
+ *   ★ 월 경계 회차의 귀속(F25) — agent-r3(11/30~12/1)를 displayMonth 11로 둔다.
+ *     기간 필터는 displayMonth로 걸리는데 정렬·과거 판정은 start 기준이다.
+ *     12로 두면 「12월」 그룹의 첫 줄에 11.30이 튀고, 11월 필터에서는
+ *     11/30 시작인데도 사라진다 — 양쪽 다 손해였다.
+ *     회차 선택의 기준점은 시작일이다(신청 마감·개강 확정·참석 준비가 전부 시작일 기준).
+ *     양쪽 노출(displayMonth 배열화)은 기간 칩 카운트 합이 전체 회차 수와
+ *     어긋나므로(21 vs 20) 채택하지 않는다. 월 경계 회차는 20건 중 이 1건뿐이라
+ *     데이터 모델을 바꿀 일이 아니다.
+ *
  *   ★ seatsLeft는 데이터에 두지 않는다 — '잔여 N석'은 근거 없는 재고 주장이다.
  *     잔여석 표시 검증은 ?preview=badges 쇼케이스가 전담한다.
  *
@@ -81,7 +90,7 @@ export const KIUM_SESSIONS: KiumSession[] = [
   // AI활용 — 업무효율화: Agent (kium-09)
   { id: 'agent-r1',  courseId: 'kium-09', displayMonth: 10, start: '2026-10-12', end: '2026-10-13', status: 'closing' },
   { id: 'agent-r2',  courseId: 'kium-09', displayMonth: 11, start: '2026-11-02', end: '2026-11-03', status: 'confirmed' },
-  { id: 'agent-r3',  courseId: 'kium-09', displayMonth: 12, start: '2026-11-30', end: '2026-12-01', status: 'closing' },
+  { id: 'agent-r3',  courseId: 'kium-09', displayMonth: 11, start: '2026-11-30', end: '2026-12-01', status: 'closing' },
   // AI활용 — 업무효율화: Data (kium-10)
   { id: 'data-r1',   courseId: 'kium-10', displayMonth: 10, start: '2026-10-14', end: '2026-10-15', status: 'confirmed' },
   { id: 'data-r2',   courseId: 'kium-10', displayMonth: 11, start: '2026-11-09', end: '2026-11-10', status: 'recruiting' },

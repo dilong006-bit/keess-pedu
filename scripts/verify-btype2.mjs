@@ -85,7 +85,8 @@ const browser = await chromium.launch();
   const chipTexts = chips.map((c) => c.t).join(' / ');
   ok(
     'Q6 기간 칩 `N회차` 단위',
-    chipTexts === '전체20회차 / 10월6회차 / 11월6회차 / 12월8회차',
+    // [F25] agent-r3(11/30~12/1)가 displayMonth 11로 귀속되어 11월 +1 · 12월 -1
+    chipTexts === '전체20회차 / 10월6회차 / 11월7회차 / 12월7회차',
     chipTexts
   );
   ok('Q7 기간 칩 aria-label 전건', chips.every((c) => /\d+개 회차$/.test(c.a || '')), chips.map((c) => c.a).join(' / '));
@@ -107,7 +108,7 @@ const browser = await chromium.launch();
   ok(
     'Q9 섹션 헤더 필터 연동 3케이스',
     h0 === '공개교육 일정 · 10~12월 20개 회차' &&
-      h1 === '공개교육 일정 · 12월 8개 회차' &&
+      h1 === '공개교육 일정 · 12월 7개 회차' &&
       h2 === '공개교육 일정 · 12월 · 모집중 4개 회차',
     `${h0} → ${h1} → ${h2}`
   );
@@ -865,10 +866,46 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   ok('U2 relead-r3 = 12.16(수) ~ 17(목)', /^12\.16\(수\) ~ 17\(목\)$/.test(find('12.16')), find('12.16'));
   ok('U3 onpow-r2 = 12.28(월) ~ 29(화)', /^12\.28\(월\) ~ 29\(화\)$/.test(find('12.28')), find('12.28'));
 
-  ok('U4 11월 그룹 = 11.2 · 11.9 · 11.12 · 11.16 · 11.18 · 11.20',
-    short(nov.dates) === '11.2 · 11.9 · 11.12 · 11.16 · 11.18 · 11.20', short(nov.dates));
-  ok('U5 12월 그룹 = 11.30 · 12.7 · 12.9 · 12.11 · 12.14 · 12.16 · 12.21 · 12.28',
-    short(dec.dates) === '11.30 · 12.7 · 12.9 · 12.11 · 12.14 · 12.16 · 12.21 · 12.28', short(dec.dates));
+  ok('U4 11월 그룹 = 11.2 · 11.9 · 11.12 · 11.16 · 11.18 · 11.20 · 11.30',
+    short(nov.dates) === '11.2 · 11.9 · 11.12 · 11.16 · 11.18 · 11.20 · 11.30', short(nov.dates));
+  // [F25] 첫 줄의 11.30이 11월 그룹으로 넘어가 12월은 12.7부터 시작한다
+  ok('U5 12월 그룹 = 12.7 · 12.9 · 12.11 · 12.14 · 12.16 · 12.21 · 12.28',
+    short(dec.dates) === '12.7 · 12.9 · 12.11 · 12.14 · 12.16 · 12.21 · 12.28', short(dec.dates));
+
+  /* [F25] V1~V3 — 월 경계 회차의 귀속 */
+  // 스트립은 요약이라 6장 상한이다 — 7번째가 잘리므로 「전체 일정」 리스트를 본다
+  const monthDates = async (label) => {
+    await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(800);
+    await p.locator('#kium-cf-month + .kium-filters .kium-chip', { hasText: label }).first().click();
+    await p.waitForTimeout(600);
+    await p.locator('.kium-schedbox-toggle').click();
+    await p.waitForTimeout(700);
+    return (await p.locator('.kium-srow-date b').allTextContents())
+      .map((d) => d.replace(/\(.*$/, '').trim());
+  };
+  const nov11 = await monthDates('11월');
+  const dec12 = await monthDates('12월');
+  ok('V1 11월 필터에 agent-r3 노출 · 12월 필터에 미노출',
+    nov11.includes('11.30') && !dec12.includes('11.30'),
+    `11월 [${nov11.join(' · ')}] / 12월 [${dec12.join(' · ')}]`);
+
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(800);
+  await p.locator('#kium-cf-month + .kium-filters .kium-chip', { hasText: '12월' }).first().click();
+  await p.waitForTimeout(600);
+  const v2 = (await p.locator('#kium-cf-st + .kium-filters .kium-chip').allTextContents())
+    .map((t) => t.replace(/\s+/g, ' ').trim());
+  ok('V2 12월 상태 칩 = 전체 7 / 모집중 4 / 개강확정 3 (정확히 3개)',
+    v2.join(' | ') === '전체 7 | 모집중 4 | 개강확정 3', v2.join(' | '));
+
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(800);
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(700);
+  const v3 = (await p.locator('.kium-srow-date b').allTextContents()).find((d) => d.startsWith('11.30')) || '(없음)';
+  ok('V3 agent-r3 표기 = 11.30(월) ~ 12.1(화) (귀속이 바뀌어도 표기 불변)',
+    /^11\.30\(월\) ~ 12\.1\(화\)$/.test(v3), v3);
 
   /* U9 — 스트립 첫 6장은 10월 회차로만 구성돼 무영향이어야 한다 */
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
@@ -1009,8 +1046,12 @@ for (const w of [320, 375, 768, 1024, 1440]) {
 
   await pickMonth('12월');
   const c3 = await chipTexts();
-  ok('C3 기간 12월 — 칩 4개(마감 0건 → 미노출)',
-    c3.length === 4 && !c3.some((t) => /^마감 \d/.test(t)), c3.join(' | '));
+  /* [F25] agent-r3(closing)가 11월로 귀속되어 12월 closing이 0건이 됐다.
+     칩이 하나 더 사라지는 것은 결함이 아니라 F22('0건 칩은 선택지가 아니라 잡음')의
+     정상 동작이며, 그 규칙이 두 단계로 발현되는 첫 실데이터 사례다. */
+  ok('C3 기간 12월 — 칩 3개(마감 · 마감임박 0건 → 미노출)',
+    c3.length === 3 && !c3.some((t) => /^마감 \d/.test(t)) && !c3.some((t) => /^마감임박/.test(t)),
+    c3.join(' | '));
 
   ok('C6 `전체` 칩은 모든 조건에서 노출',
     [c1, c2, c3, c4].every((a) => /^전체/.test(a[0])), '4조건 전건');

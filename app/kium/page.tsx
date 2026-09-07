@@ -21,7 +21,7 @@ import { KIUM_CONTENT } from '@/lib/kium/content';
 export const metadata: Metadata = {
   title: '인재키움 프리미엄 | KEESS',
   description:
-    '2026 중소기업 인재 키움 프리미엄 훈련 — 지원대상 확인부터 과정 설계·정부 신청·환급까지 KG에듀원이 함께합니다.',
+    '2026 중소기업 인재 키움 프리미엄 훈련. 지원대상 확인부터 과정 설계·정부 신청·환급까지 KG에듀원이 함께합니다.',
 };
 
 /** 제도 근거 표기 — 기술명세서 최종 v2.0 §2 외부 링크 맵 3번(공단 공고) */

@@ -1414,6 +1414,25 @@ for (const w of [320, 375, 768, 1024, 1440]) {
     }
   }
   ok('Z 금지 문구 렌더 0건(공개 교육 · 미개설 · 전환되었습니다 · 이 일정으로 상담)', Object.keys(found).length === 0, JSON.stringify(found));
+
+  /* Z2 — 렌더 문구에서 대시(— · –)를 쓰지 않는다(표기 규칙 통일).
+     저장소 주석에는 설계 근거 서술용 대시가 많으므로 소스 정적 검사가 아니라
+     **런타임 innerText**를 본다 — 주석은 렌더되지 않아 자동으로 제외된다.
+     검토 전용 화면(?preview=cases)까지 포함해 세 경로를 훑는다. */
+  const dashes = [];
+  for (const path of ['/kium', '/kium?tab=courses&mode=open', '/kium?tab=courses&mode=open&preview=cases']) {
+    await p.goto(BASE + path, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(700);
+    const hits = await p.evaluate(() =>
+      document.body.innerText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.includes('\u2014') || l.includes('\u2013'))
+    );
+    for (const h of hits) dashes.push(path + ' :: ' + h);
+  }
+  ok('Z2 렌더 문구 대시(— · –) 0건', dashes.length === 0,
+    dashes.length ? dashes.join(' | ') : '3경로 0건');
   await p.close();
 }
 

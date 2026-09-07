@@ -52,7 +52,7 @@ export function SessionPill({
 
   if (st === 'closed') {
     return (
-      <span className="kium-pill-ses" data-tone="gray" aria-label={`${label} — 신청 불가`}>
+      <span className="kium-pill-ses" data-tone="gray" aria-label={`${label}, 신청 불가`}>
         <Icon size={14} />
         <span>{fmtRangeShort(session)}</span>
       </span>
@@ -179,7 +179,7 @@ export default function SessionStrip({
     <div className="kium-strip-wrap">
       <h5 className="kium-detail-h">{heading}</h5>
       {list.length === 0 ? (
-        <p className="kium-noses">다음 회차 준비 중 — 과정만 상담이 가능합니다</p>
+        <p className="kium-noses">다음 회차 준비 중입니다. 과정만 상담이 가능합니다.</p>
       ) : (
         <div className={`kium-strip${list.length === 1 ? ' is-single' : ''}`}>
           {list.map((s) => (

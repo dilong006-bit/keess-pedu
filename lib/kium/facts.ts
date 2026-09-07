@@ -10,7 +10,7 @@ import { KIUM_CONTENT } from './content';
  */
 
 /** 미검증 항목 접근 시 화면에 대신 노출하는 확정 문구 */
-export const FACT_FALLBACK = '기업별 상이 — 상담 시 확인';
+export const FACT_FALLBACK = '기업별 상이 · 상담 시 확인';
 
 export type KiumFact = (typeof KIUM_CONTENT.facts)[number];
 

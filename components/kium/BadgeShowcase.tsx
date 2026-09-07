@@ -41,7 +41,7 @@ export default function BadgeShowcase() {
   return (
     <section className="kium-showcase" aria-label="모집 상태 UI 쇼케이스(개발 검수용)">
       <p className="kium-showcase-head">
-        상태 쇼케이스 · <code>?preview=badges</code> — 검수 전용 화면입니다. 사이트 내 링크는 없습니다.
+        상태 쇼케이스 · <code>?preview=badges</code>. 검수 전용 화면입니다. 사이트 내 링크는 없습니다.
       </p>
 
       <h4>① 상태 배지 4종</h4>
@@ -107,7 +107,7 @@ export default function BadgeShowcase() {
       </div>
 
       <h4>⑦ 회차 0개 케이스</h4>
-      <p className="kium-noses">다음 회차 준비 중 — 과정만 상담이 가능합니다</p>
+      <p className="kium-noses">다음 회차 준비 중입니다. 과정만 상담이 가능합니다.</p>
     </section>
   );
 }

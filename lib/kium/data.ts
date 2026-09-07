@@ -916,7 +916,7 @@ export const KIUM_COURSES: KiumCourse[] =
       },
       {
         "area": "스킬 익히기",
-        "content": "보고 유형별 맞춤 기법 습득 (중간보고 – 문제보고 – 정보보고)",
+        "content": "보고 유형별 맞춤 기법 습득 (중간보고 · 문제보고 · 정보보고)",
         "hours": 1
       },
       {

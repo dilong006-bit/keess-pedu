@@ -68,7 +68,7 @@ export default function TeaserSnackbar() {
 
   return (
     <div className={`teaser${open ? ' show' : ''}`} role="status">
-      <p className="teaser-msg">2026 정부지원 훈련 신설 — 훈련비 90~95% 환급</p>
+      <p className="teaser-msg">2026 정부지원 훈련 신설 · 훈련비 90~95% 환급</p>
       <Link className="teaser-cta" href="/kium" data-ga-id="teaser-kium-cta" onClick={close}>
         보러가기
       </Link>

@@ -94,7 +94,7 @@ export default function CourseListView({
                 ))}
               </ul>
             ) : (
-              <p className="kium-noses">다음 회차 준비 중 — 과정만 상담이 가능합니다</p>
+              <p className="kium-noses">다음 회차 준비 중입니다. 과정만 상담이 가능합니다.</p>
             )}
 
             {isOpen && (

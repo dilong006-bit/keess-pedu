@@ -115,7 +115,7 @@ export default function UpcomingSessionsStrip({
         ) : shown.length === 0 ? (
           // 필터 결과에 미마감 회차가 없는 경우 — 마감만 남은 상태다. 토글은 헤더에 그대로 있다
           <p className="kium-noses kium-ustrip-none">
-            해당 조건에 신청 가능한 회차가 없습니다 — 전체 일정에서 지난 회차를 확인하실 수 있습니다.
+            해당 조건에 신청 가능한 회차가 없습니다. 전체 일정에서 지난 회차를 확인하실 수 있습니다.
           </p>
         ) : (
           <div className="kium-ustrip">

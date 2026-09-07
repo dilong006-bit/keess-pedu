@@ -292,7 +292,7 @@ export default function KiumCourseGrid({
                     className="kium-openflag"
                     data-evt="kium_mode_open"
                     onClick={() => onOpenBadge(course.id)}
-                    aria-label={`${course.titleMarketing} — 공개교육 일정 보기로 전환`}
+                    aria-label={`${course.titleMarketing}, 공개교육 일정 보기로 전환`}
                   >
                     <IconCalendarDays size={14} />
                     <span>공개교육</span>

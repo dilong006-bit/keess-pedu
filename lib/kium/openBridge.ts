@@ -84,7 +84,7 @@ export function prefillTextBRequest(kind: OpenRequestKind): string {
 }
 
 /** 마감 가드 문구 — 요약 배너가 그대로 출력한다 */
-export const GUARD_CLOSED_TEXT = '해당 회차는 마감되었습니다 — 다음 회차 상담으로 안내됩니다';
+export const GUARD_CLOSED_TEXT = '해당 회차는 마감되었습니다. 다음 회차 상담으로 안내됩니다.';
 
 /**
  * 상담 폼으로 이동 + 프리필.

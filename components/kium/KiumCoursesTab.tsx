@@ -489,7 +489,7 @@ export default function KiumCoursesTab() {
                     type="button"
                     className="kium-chip kium-chip-review"
                     aria-pressed={status === 'empty'}
-                    aria-label="검토용 — 조건에 맞는 회차가 없는 화면 확인"
+                    aria-label="검토용, 조건에 맞는 회차가 없는 화면 확인"
                     onClick={() => setStatus('empty')}
                   >
                     Empty Case

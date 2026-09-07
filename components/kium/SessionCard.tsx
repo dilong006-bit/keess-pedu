@@ -17,7 +17,6 @@ import {
   fmtRangeA11y,
   fmtRangeShort,
   sessionDays,
-  sortByWeight,
   type KiumSession,
   type KiumSessionStatus,
 } from '@/lib/kium/sessions';
@@ -147,17 +146,38 @@ export default function SessionStrip({
   sessions,
   now,
   onConsult,
+  /**
+   * [F17] 블록 제목. 미지정 시 '교육일정' — variant="open" 렌더가 한 글자도 바뀌지 않는다.
+   *   전체 보기에서는 '공개교육 일정'을 넘긴다:
+   *   이 과정들은 기업 위탁으로도 운영되므로(schedule: '연중상시')
+   *   '교육일정'이라 쓰면 과정 전체의 일정으로 읽힌다.
+   *   BT-08에서 pill 라벨을 '교육 일정' → '공개교육'으로 바꾼 것과 같은 근거다.
+   */
+  heading = '교육일정',
 }: {
   course: KiumCourse;
   sessions: KiumSession[];
   now: Date | null;
   onConsult: (s: KiumSession) => void;
+  heading?: string;
 }) {
-  const list = sortByWeight(sessions, now);
+  /**
+   * [F20] 한 과정의 회차를 보는 과업은 "이 과정 언제 하지?"다 — 시간 축이 축이다.
+   *   sortByWeight()는 weight ASC → start ASC라 상태가 날짜를 이겨,
+   *   상태 시드 적용 후 kium-11이 11.16 / 12.14 / 10.19 순으로 렌더됐다.
+   *   「전체 일정」 리스트에 적용한 BT-26과 같은 규칙이다.
+   *   closed만 뒤로 보낸다 — 지난 회차가 미래 회차 사이에 끼면 판독을 방해한다.
+   *   ※ sortByWeight()는 다른 호출부가 참조하므로 함수 자체는 무변경.
+   */
+  const list = [...sessions].sort((a, b) => {
+    const ca = effectiveStatus(a, now) === 'closed' ? 1 : 0;
+    const cb = effectiveStatus(b, now) === 'closed' ? 1 : 0;
+    return ca - cb || a.start.localeCompare(b.start);
+  });
 
   return (
     <div className="kium-strip-wrap">
-      <h5 className="kium-detail-h">교육일정</h5>
+      <h5 className="kium-detail-h">{heading}</h5>
       {list.length === 0 ? (
         <p className="kium-noses">다음 회차 준비 중 — 과정만 상담이 가능합니다</p>
       ) : (

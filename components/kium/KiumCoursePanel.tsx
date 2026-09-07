@@ -5,11 +5,8 @@ import SessionStrip from './SessionCard';
 import { IconArrowRight } from './kiumIcons';
 import { KIUM_CATEGORY_META, type KiumCourse } from '@/lib/kium/data';
 import { requestKiumInquiry } from '@/lib/kium/inquiryBridge';
-import { fmtRange, getSessionsByDate, getSessionsOfCourse, isOpenCourse, type KiumSession } from '@/lib/kium/sessions';
+import { getSessionsOfCourse, isOpenCourse, type KiumSession } from '@/lib/kium/sessions';
 import { fmtPrice, KIUM_PRICE_NOTE } from '@/lib/kium/pricing';
-
-/** 회차 나열 상한 — 3건까지 나열하고 나머지는 '외 n건'으로 접는다(§5-11) */
-const SCHEDULE_MAX = 3;
 
 /**
  * F9 상세 패널 — 3차 개정 [수정 10]
@@ -106,14 +103,13 @@ export default function KiumCoursePanel({
         {isOpenCourse(course.id) && !isOpenVar && (
           <>
             {/* 라벨이 '교육 일정'이면 이 과정 전체의 일정으로 읽힌다 — 실제로는 공개교육 회차만
-                나열한 것이고 이 과정은 기업 위탁으로도 운영된다(schedule: '연중상시'). */}
+                나열한 것이고 이 과정은 기업 위탁으로도 운영된다(schedule: '연중상시').
+                [F18] pill은 '이 과정은 공개교육으로도 됩니다'라는 사실을 메타 영역에서 알린다.
+                날짜라는 값은 아래 「공개교육 일정」 블록이 진다 —
+                같은 패널에 같은 날짜가 두 번 나오면 두 번째는 정보가 아니라 잡음이다. */}
             <span className="kium-pill" data-open>
               <b>공개교육</b>
-              {(() => {
-                const list = getSessionsByDate().filter((s) => s.courseId === course.id);
-                const head = list.slice(0, SCHEDULE_MAX).map(fmtRange).join(', ');
-                return list.length > SCHEDULE_MAX ? `${head} 외 ${list.length - SCHEDULE_MAX}건` : head;
-              })()}
+              <span className="num">{getSessionsOfCourse(course.id).length}개 회차</span>
             </span>
             <span className="kium-pill" data-open>
               <b>교육비</b>
@@ -193,13 +189,34 @@ export default function KiumCoursePanel({
         </div>
       </div>
 
-      {/* ⑦ CTA — open 변형은 일정 미정 상담(경로 B)으로 보낸다 */}
+      {/* ⑥-2 공개교육 일정 — 전체 보기 전용 인라인 신청 경로 (F17)
+          위치 근거: 이 패널의 주제는 "이 과정이 무엇인가"다. 회차는 결정을 돕는 부가 정보다.
+            최상단(open 변형의 위치)에 두면 과정 소개보다 일정이 먼저 나와 축이 뒤집힌다.
+            사용자의 인지 순서 `이 과정 괜찮겠다 → 그럼 언제 하지? → 신청`에 맞춰
+            읽기를 마친 지점, 곧 결정 지점에 둔다.
+          open 변형은 이미 헤더 아래(①)에 같은 블록이 있으므로 여기서는 렌더하지 않는다.
+          위탁 10과정은 isOpenCourse()가 false라 블록 자체가 생성되지 않는다('-' 표기 금지). */}
+      {!isOpenVar && isOpenCourse(course.id) && (
+        <SessionStrip
+          course={course}
+          sessions={getSessionsOfCourse(course.id)}
+          now={now}
+          onConsult={(s) => onConsultSession?.(s)}
+          heading="공개교육 일정"
+        />
+      )}
+
+      {/* ⑦ CTA — 분기 기준은 '보기'가 아니라 '그 과정의 신청 방식'이다(F19).
+          공개교육 9과정은 어느 보기에서 열어도 경로 B로 간다
+          ("회차 중 맞는 게 없으면 일정 협의"). 블록의 회차 CTA(경로 A)와 중복이 아니다 —
+          의도가 갈린다: 회차 CTA는 "이 날짜로 하겠다", 하단 CTA는 "관심 있는데 일정을 협의".
+          onConsultCourse가 없는 호출부에서는 기존 경로 ①로 폴백해 동작을 잃지 않는다. */}
       <div className="kium-detail-cta">
-        {isOpenVar ? (
+        {isOpenCourse(course.id) && onConsultCourse ? (
           <button
             type="button"
             className="kium-cta-ses"
-            onClick={() => onConsultCourse?.(course)}
+            onClick={() => onConsultCourse(course)}
             aria-label={`${course.titleMarketing} 이 과정으로 상담하기`}
           >
             <span>이 과정으로 상담하기</span>

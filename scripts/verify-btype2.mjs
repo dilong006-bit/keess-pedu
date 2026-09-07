@@ -477,17 +477,35 @@ const browser = await chromium.launch();
 {
   const p = await browser.newPage({ viewport: PC });
 
-  /* P1 — 전체 보기 상세 패널 CTA → ① 2줄 */
+  /* P1 — 전체 보기 상세 패널 CTA → ① 2줄
+     [F19] 대상을 kium-03 → kium-01로 교체했다. 분기 기준이 '보기'에서 '과정 성격'으로
+     바뀌어 공개교육 과정(kium-03)은 어느 보기에서 열어도 경로 B가 된다 —
+     경로 ①을 단언하려면 위탁 과정이어야 한다. 경로 B는 P1b가 받는다. */
   await openCourses(p);
-  await p.locator('#kium-cardwrap-kium-03 .kium-card').click();
+  await p.locator('#kium-cardwrap-kium-01 .kium-card').click();
   await p.waitForTimeout(700);
   await p.locator('.kium-panel-slot .kium-detail-cta button').first().click();
   await p.waitForTimeout(900);
   let v = await ta(p).inputValue();
   ok(
-    'P1 ① 일반 과정(2줄)',
+    'P1 ① 위탁 과정(2줄)',
     /^\[관심 과정: [^\]]+\]\n· 문의 내용: \n$/.test(v),
     JSON.stringify(v)
+  );
+
+  /* P1b — [F19] 전체 보기에서 연 공개교육 과정의 하단 CTA는 경로 B다 */
+  await openCourses(p);
+  await p.locator('#kium-cardwrap-kium-03 .kium-card').click();
+  await p.waitForTimeout(700);
+  const p1bLabel = (await p.locator('.kium-panel-slot .kium-detail-cta button').first().innerText()).trim();
+  await p.locator('.kium-panel-slot .kium-detail-cta button').first().click();
+  await p.waitForTimeout(900);
+  v = await ta(p).inputValue();
+  ok(
+    'P1b [F19] 전체 보기 · 공개교육 과정 하단 CTA → 경로 B',
+    p1bLabel === '이 과정으로 상담하기' &&
+      /^\[공개교육 상담 신청\]\n· 과정명: .+\n· 희망 회차: 협의 희망\n· 문의 내용: \n$/.test(v),
+    `${p1bLabel} | ${JSON.stringify(v.split('\n')[2])}`
   );
 
   /* P2 — 공개교육 회차 CTA → ② 4줄, `· 2일` 포함 */
@@ -792,6 +810,186 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   const dates = await p.locator('.kium-srow-date b').allTextContents();
   ok('A6-11월 날짜 오름차순', true, dates.join(' · '));
   await p.close();
+}
+
+/* ═══ F17~F20 — 전체 보기 상세 패널 인라인 회차 블록 ═════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  const panel = () => p.locator('.kium-panel-slot');
+  const openCard = async (id) => {
+    await p.locator(`#kium-cardwrap-${id} .kium-card`).click();
+    await p.waitForTimeout(700);
+  };
+
+  await openCourses(p);
+  await openCard('kium-14');
+  const wrapN = await panel().locator('.kium-strip-wrap').count();
+  const headTxt = (await panel().locator('.kium-strip-wrap .kium-detail-h').first().innerText()).trim();
+  const cardN = await panel().locator('.kium-strip .kium-scard2').count();
+  ok('G1 전체 보기 kium-14 — 「공개교육 일정」 블록 1개 · 회차 1장',
+    wrapN === 1 && headTxt === '공개교육 일정' && cardN === 1,
+    `wrap ${wrapN} / "${headTxt}" / 카드 ${cardN}`);
+
+  /* G2 — DOM 순서: 교육구성 표 아래, .kium-detail-cta 앞 */
+  const order = await panel().locator('.kium-detail').evaluate((d) => {
+    const kids = [...d.children];
+    const has = (sel) => kids.findIndex((k) => k.matches(sel) || k.querySelector(sel));
+    return {
+      table: has('table'),
+      strip: kids.findIndex((k) => k.classList.contains('kium-strip-wrap')),
+      cta: kids.findIndex((k) => k.classList.contains('kium-detail-cta')),
+    };
+  });
+  ok('G2 블록 위치 — 교육구성 표 아래 · CTA 앞',
+    order.strip > order.table && order.strip < order.cta && order.table >= 0,
+    JSON.stringify(order));
+
+  /* G3 — 위탁 과정은 블록·pill 모두 0 */
+  await openCard('kium-01');
+  const g3 = {
+    wrap: await panel().locator('.kium-strip-wrap').count(),
+    pill: await panel().locator('.kium-pill[data-open]').count(),
+  };
+  ok('G3 위탁 kium-01 — 블록 0 · 공개교육 pill 0', g3.wrap === 0 && g3.pill === 0, JSON.stringify(g3));
+
+  /* G4·G5 — 회차 CTA → 보기 유지 + 경로 A */
+  await openCourses(p);
+  await openCard('kium-14');
+  await panel().locator('.kium-strip .kium-sact, .kium-strip .kium-cta-ses').first().click();
+  await p.waitForTimeout(1000);
+  const segTxt = (await p.locator('.kium-modeseg [aria-pressed="true"]').innerText()).replace(/\s+/g, ' ').trim();
+  const pre = await ta(p).inputValue();
+  ok('G4 회차 CTA — 세그먼트 「전체과정」 유지', /전체과정/.test(segTxt), segTxt);
+  ok('G5 프리필 경로 A (· 희망 회차 포함)',
+    /^\[공개교육 상담 신청\]\n· 과정명: .+\n· 희망 회차: .+· \d일 \(.+\)\n· 문의 내용: \n$/.test(pre),
+    JSON.stringify(pre));
+
+  /* G6 — pill 요약화 */
+  await openCourses(p);
+  await openCard('kium-14');
+  const pillTxt = (await panel().locator('.kium-pill[data-open]').first().innerText()).replace(/\s+/g, ' ').trim();
+  ok('G6 공개교육 pill — `N개 회차` · 날짜 문자열 0건',
+    /^공개교육 \d+개 회차$/.test(pillTxt) && !/\d+\.\d+/.test(pillTxt), pillTxt);
+
+  /* G7·G8 — 하단 CTA 문구 */
+  const g7 = (await panel().locator('.kium-detail-cta button').first().innerText()).trim();
+  await openCard('kium-01');
+  const g8 = (await panel().locator('.kium-detail-cta button').first().innerText()).trim();
+  ok('G7 하단 CTA · 공개교육 과정 = 이 과정으로 상담하기', g7 === '이 과정으로 상담하기', g7);
+  ok('G8 하단 CTA · 위탁 과정 = 이 과정으로 신청 문의', /이 과정으로 신청.문의/.test(g8), g8);
+
+  /* G9 — 두 보기 CTA 일치 */
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(800);
+  await openCard('kium-14');
+  const g9 = (await panel().locator('.kium-detail-cta button').first().innerText()).trim();
+  ok('G9 두 보기 하단 CTA 일치(kium-14)', g9 === g7, `전체 "${g7}" / 공개 "${g9}"`);
+
+  /* G10 — open 변형 무변경 */
+  const g10 = await panel().locator('.kium-detail').evaluate((d) => {
+    const kids = [...d.children];
+    return {
+      stripIdx: kids.findIndex((k) => k.classList.contains('kium-strip-wrap')),
+      headIdx: kids.findIndex((k) => k.classList.contains('kium-detail-head')),
+      heading: d.querySelector('.kium-strip-wrap .kium-detail-h')?.textContent.trim(),
+      pills: [...d.querySelectorAll('.kium-pill[data-open] b')].map((b) => b.textContent.trim()),
+      wraps: d.querySelectorAll('.kium-strip-wrap').length,
+    };
+  });
+  ok('G10 variant="open" 무변경 — 헤더 직후 · `교육일정` · pill은 교육비만',
+    g10.stripIdx === g10.headIdx + 1 && g10.heading === '교육일정' &&
+      g10.pills.join('/') === '교육비' && g10.wraps === 1,
+    JSON.stringify(g10));
+
+  /* G11·G12 */
+  await openCourses(p);
+  const flags = await p.locator('.kium-openflag').count();
+  await openCard('kium-14');
+  const moveTrig = await panel().locator('text=/공개교육 보기/').count();
+  ok('G11 카드 공개교육 뱃지 9건 유지', flags === 9, String(flags));
+  ok('G12 상세 패널 이동 트리거 0건', moveTrig === 0, String(moveTrig));
+
+  /* O1~O4 — 9과정 전건 회차 날짜 배열 */
+  const IDS = ['kium-03', 'kium-04', 'kium-09', 'kium-10', 'kium-11', 'kium-12', 'kium-13', 'kium-14', 'kium-19'];
+  const rows = [];
+  for (const id of IDS) {
+    await openCourses(p);
+    await openCard(id);
+    const ds = await panel().locator('.kium-strip .kium-scard2-date b').allTextContents();
+    rows.push({ id, dates: ds.map((d) => d.replace(/\(.*$/, '').trim()) });
+  }
+  const num = (d) => { const [m, dd] = d.split('.').map(Number); return m * 100 + dd; };
+  const asc = (a) => a.every((d, i) => i === 0 || num(a[i - 1]) <= num(d));
+  const bad = rows.filter((r) => !asc(r.dates));
+  ok('O3 9과정 전건 회차 날짜 오름차순', bad.length === 0,
+    rows.map((r) => `${r.id}: ${r.dates.join(' · ')}`).join(' | '));
+  const k11 = rows.find((r) => r.id === 'kium-11').dates.join(' · ');
+  const k10 = rows.find((r) => r.id === 'kium-10').dates.join(' · ');
+  ok('O1 kium-11 = 10.19 · 11.16 · 12.14', k11 === '10.19 · 11.16 · 12.14', k11);
+  ok('O2 kium-10 = 10.14 · 11.9 · 12.7', /^10\.14 · 11\.0?9 · 12\.0?7$/.test(k10), k10);
+
+  /* O4 — 두 변형 순서 일치 */
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(800);
+  await openCard('kium-11');
+  const k11o = (await panel().locator('.kium-strip .kium-scard2-date b').allTextContents())
+    .map((d) => d.replace(/\(.*$/, '').trim()).join(' · ');
+  ok('O4 두 변형 회차 순서 일치(kium-11)', k11o === k11, `전체 "${k11}" / 공개 "${k11o}"`);
+  await p.close();
+}
+
+/* ── R1~R6 — 회차 1·2·3건 × 5뷰포트 ── */
+{
+  const CASES = [['kium-14', 1], ['kium-03', 2], ['kium-11', 3]];
+  for (const w of [320, 375, 768, 1024, 1440]) {
+    const p = await browser.newPage({ viewport: { width: w, height: 1200 } });
+    const rows = [];
+    for (const [id, n] of CASES) {
+      await p.goto(`${BASE}/kium?tab=courses`, { waitUntil: 'networkidle' });
+      await p.waitForTimeout(700);
+      await p.locator(`#kium-cardwrap-${id} .kium-card`).click();
+      await p.waitForTimeout(700);
+      const r = await p.locator('.kium-detail .kium-strip').evaluate((el) => ({
+        cards: el.children.length,
+        single: el.classList.contains('is-single'),
+        snap: getComputedStyle(el).scrollSnapType,
+        ovfX: getComputedStyle(el).overflowX,
+        overflow: Math.max(0, Math.round(document.documentElement.scrollWidth - document.documentElement.clientWidth)),
+        small: [...el.querySelectorAll('button')].filter((b) => {
+          const q = b.getBoundingClientRect();
+          return q.width > 0 && q.height < 44 && q.width < 44;
+        }).length,
+      }));
+      rows.push({ id, want: n, ...r });
+    }
+    ok(`R1 ${w}px — 회차 1·2·3건 가로 넘침 0px`,
+      rows.every((r) => r.overflow === 0 && r.cards === r.want),
+      rows.map((r) => `${r.id} ${r.cards}장 ovf${r.overflow}`).join(' / '));
+    ok(`R4 ${w}px — 44px 미만 터치 타깃 0`, rows.every((r) => r.small === 0),
+      rows.map((r) => `${r.id}:${r.small}`).join(' / '));
+    if (w === 375) {
+      ok('R3 MO · 1건 — is-single · overflow-x:visible', rows[0].single === true && rows[0].ovfX === 'visible', JSON.stringify(rows[0]));
+      ok('R2 MO · 3건 — 가로 스크롤 + snap', rows[2].single === false && rows[2].ovfX === 'auto' && /x/.test(rows[2].snap), JSON.stringify(rows[2]));
+    }
+    await p.close();
+  }
+  /* R5 — 제목 계층 · R6 — reduced-motion */
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(700);
+  await p.locator('#kium-cardwrap-kium-11 .kium-card').click();
+  await p.waitForTimeout(700);
+  const r5 = await p.locator('.kium-detail .kium-strip-wrap .kium-detail-h').evaluate((el) => el.tagName);
+  ok('R5 블록 제목 = h5.kium-detail-h (패널 내 다른 섹션과 동일 레벨)', r5 === 'H5', r5);
+  await p.close();
+  const p2 = await browser.newPage({ viewport: { width: 375, height: 900 }, reducedMotion: 'reduce' });
+  await p2.goto(`${BASE}/kium?tab=courses`, { waitUntil: 'networkidle' });
+  await p2.waitForTimeout(700);
+  await p2.locator('#kium-cardwrap-kium-11 .kium-card').click();
+  await p2.waitForTimeout(700);
+  const r6 = await p2.locator('.kium-detail .kium-strip').evaluate((el) => getComputedStyle(el).scrollSnapType);
+  ok('R6 reduced-motion — scroll-snap 무효화', r6 === 'none', r6);
+  await p2.close();
 }
 
 /* ═══ BT-27 · BT-28 · BT-29 — CTA 라벨 · 줄바꿈 · 하단 정렬 ══════ */

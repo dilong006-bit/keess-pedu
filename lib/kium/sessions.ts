@@ -56,6 +56,11 @@ export const KIUM_STATUS_ORDER: KiumSessionStatus[] = ['recruiting', 'confirmed'
  *     또한 모집 상태 필터의 '마감 0건' 빈 상태 안내를 시연하려면 0건이 유지되어야 한다.
  *     (단 2026-10-12 이후에는 effectiveStatus()가 지난 회차를 알아서 승격시킨다 — 정상 동작)
  *
+ *   ★ closed 1건(relead-r1)은 「정원 충족 조기 마감」을 뜻하는 검토용 값이다.
+ *     날짜 기반 자동 승격(effectiveStatus)과 성격이 다르므로 이른 회차가 열려 있어도 모순이 아니다.
+ *     가장 이른 3회차(10.12·10.14·10.19)는 스트립 첫 화면의 3상태 커버리지라 건드리지 않는다.
+ *     10월 그룹 하나에 4상태가 모두 모여 기간 필터 하나로 전 상태를 비교할 수 있다.
+ *
  *   ★ seatsLeft는 데이터에 두지 않는다 — '잔여 N석'은 근거 없는 재고 주장이다.
  *     잔여석 표시 검증은 ?preview=badges 쇼케이스가 전담한다.
  *
@@ -88,7 +93,7 @@ export const KIUM_SESSIONS: KiumSession[] = [
   { id: 'cs-r2',     courseId: 'kium-19', displayMonth: 11, start: '2026-11-17', end: '2026-11-17', status: 'confirmed' },
   { id: 'cs-r3',     courseId: 'kium-19', displayMonth: 12, start: '2026-12-21', end: '2026-12-21', status: 'recruiting' },
   // 리더십·관리자 — 진단 기반 팀장 리더십 Re-Lead (kium-04)
-  { id: 'relead-r1', courseId: 'kium-04', displayMonth: 10, start: '2026-10-21', end: '2026-10-22', status: 'confirmed' },
+  { id: 'relead-r1', courseId: 'kium-04', displayMonth: 10, start: '2026-10-21', end: '2026-10-22', status: 'closed' },
   { id: 'relead-r2', courseId: 'kium-04', displayMonth: 11, start: '2026-11-18', end: '2026-11-19', status: 'recruiting' },
   // 원문 표기 `12/17(수)~18(금)`에서 틀린 것은 **요일 라벨 (수) 하나뿐**이다(2026-12-17=목).
   //   날짜 17~18은 2일로 과정 길이(14시간·2일)와 정합하고, 요일은 이 파일이 start에서 파생하므로

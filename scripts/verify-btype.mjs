@@ -239,14 +239,16 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
     ok(`H 상태 단독 ${st}`, true, `${head} / 스트립 ${rows}장 / empty ${empty}`);
   }
 
-  // 필터 0건 케이스 — '마감'은 데이터에 0건이 보장된다(검토용 시드 v1.0 §2-3).
-  // 12월+마감임박은 시드 배분 후 1건이 되어 더 이상 0건 조합이 아니다.
-  await page.locator('.kium-chip-st[data-st="closed"]').click();
-  await page.waitForTimeout(300);
-  await page.locator('#kium-cf-month + .kium-filters .kium-chip', { hasText: '12월' }).click();
+  /* [F22·F23 갱신] 필터 0건 케이스에 도달하는 경로가 바뀌었다.
+     기존 경로(마감 + 12월)는 F22의 자동 해제가 status를 'all'로 되돌려 더는 빈 화면이 되지 않는다 —
+     0건 칩을 숨기는 규칙의 짝이 '선택된 칩이 0건이 되면 해제'이기 때문이다(§4-3).
+     빈 상태 UI 자체는 여전히 검증해야 하므로 F23의 검토 칩으로 도달한다. */
+  await page.goto(BASE + '/kium?tab=courses&mode=open&preview=cases', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(700);
+  await page.locator('.kium-chip-review').click();
   await page.waitForTimeout(400);
   const empty = await page.locator('.kium-empty2').count();
-  ok('H5 필터 0건 → 빈 상태 + 필터 초기화', empty === 1);
+  ok('H5 필터 0건 → 빈 상태 + 필터 초기화(F23 경로)', empty === 1);
   if (empty) {
     await page.locator('.kium-empty2 .kium-chip').click();
     await page.waitForTimeout(400);
@@ -300,7 +302,9 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   await page.locator('.kium-schedbox-toggle').click();
   await page.waitForTimeout(500);
   const closedAll = await page.locator('.kium-ulist [data-status="closed"]').count();
-  ok('I6 마감 노출 0건(status 시드 제거)', closedRows === 0 && closedAll === 0, `스트립 ${closedRows} / 전체 일정 ${closedAll}`);
+  /* [F21 갱신] 마감 시드 1건이 들어왔다 — '마감 0건' 기대값을 교체한다.
+     스트립은 여전히 0장이어야 한다(effectiveStatus !== 'closed' 제외 규칙). */
+  ok('I6 마감 1건 · 스트립 0장(F21)', closedRows === 0 && closedAll === 1, `스트립 ${closedRows} / 전체 일정 ${closedAll}`);
 
   // 잘못된 id — 에러 없이 무시
   await page.goto(BASE + '/kium?tab=courses&mode=open&consult=1&course=nope&session=nope', { waitUntil: 'networkidle' });

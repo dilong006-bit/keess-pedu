@@ -75,9 +75,15 @@ export default function KiumCoursesTab() {
   const [mode, setMode] = useState<Mode>('all');
   const [cat, setCat] = useState<Cat>('all');
   const [month, setMonth] = useState<Month>('all');
-  const [status, setStatus] = useState<'all' | KiumSessionStatus>('all');
+  /**
+   * [F23] 'empty'는 데이터 필터가 아니라 '빈 상태 화면'을 강제로 만드는 검토용 값이다.
+   *   F21로 마감 시드가 들어가고 F22로 0건 칩이 사라지면서
+   *   기존 상태 칩만으로는 Empty Case를 만들 수 없게 됐다.
+   */
+  const [status, setStatus] = useState<'all' | KiumSessionStatus | 'empty'>('all');
   const [now, setNow] = useState<Date | null>(null);
   const [showcase, setShowcase] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
   const [live, setLive] = useState('');
   const [entering, setEntering] = useState(false);
   const [focusCourse, setFocusCourse] = useState<{ id: string; nonce: number } | null>(null);
@@ -106,10 +112,11 @@ export default function KiumCoursesTab() {
     [future, month, cat]
   );
 
-  const visible = useMemo(
-    () => (status === 'all' ? scoped : scoped.filter((s) => effectiveStatus(s, now) === status)),
-    [scoped, status, now]
-  );
+  const visible = useMemo(() => {
+    /* [F23] 'empty'는 데이터 필터가 아니라 '빈 상태 화면'을 강제로 만드는 검토용 값이다. */
+    if (status === 'empty') return [];
+    return status === 'all' ? scoped : scoped.filter((s) => effectiveStatus(s, now) === status);
+  }, [scoped, status, now]);
 
   const seasonOff = future.length === 0;
 
@@ -198,7 +205,12 @@ export default function KiumCoursesTab() {
     setNow(n);
 
     const q = new URLSearchParams(window.location.search);
-    setShowcase(q.get('preview') === 'badges');
+    const previewParam = q.get('preview');
+    setShowcase(previewParam === 'badges');
+    /* [F23] preview 파라미터가 있으면 검토 모드 —
+       ?preview=badges(쇼케이스+칩) · ?preview=cases(칩만) 둘 다 동작한다.
+       고객 화면에는 이 파라미터가 없으므로 칩이 DOM에 생성되지 않는다. */
+    setReviewMode(previewParam !== null);
 
     // 구 진입 경로(`?tab=open` · `#open`)는 KiumTabs가 `?tab=courses&mode=open`으로 바꾸지만,
     // 자식 효과가 부모보다 먼저 실행되므로 여기서도 원본 형태를 그대로 인정한다(실행 순서 의존 제거)
@@ -306,6 +318,13 @@ export default function KiumCoursesTab() {
 
   /* ── 카운트 ─────────────────────────────────────────────────────────── */
   const stCount = countByStatus(scoped, now);
+
+  /* [F22 §4-3] 선택된 칩이 0건이 되어 사라지면 사용자가 해제할 수단이 없다.
+     빈 화면 + 해제 불가는 막다른 골목이므로 자동으로 '전체'로 되돌린다.
+     'empty'(F23 검토용)는 의도적으로 0건인 화면이라 제외한다. */
+  useEffect(() => {
+    if (status !== 'all' && status !== 'empty' && stCount[status] === 0) setStatus('all');
+  }, [status, stCount]);
   /**
    * 섹션 헤더의 범위 문구 — 필터에서 파생한다.
    * '10~12월'을 하드코딩해 두면 12월만 걸러 본 사용자에게 표시와 상태가 어긋난 화면이 남는다.
@@ -313,7 +332,7 @@ export default function KiumCoursesTab() {
   const scopeLabel = [
     month === 'all' ? '10~12월' : `${month}월`,
     cat === 'all' ? null : (categories.find((c) => c.key === cat)?.label ?? null),
-    status === 'all' ? null : KIUM_SESSION_META[status].label,
+    status === 'all' || status === 'empty' ? null : KIUM_SESSION_META[status].label,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -438,6 +457,12 @@ export default function KiumCoursesTab() {
                   전체 <span className="cnt">{scoped.length}</span>
                 </button>
                 {KIUM_STATUS_ORDER.map((st) => {
+                  /* [F22 · 9/7 회의 결정] 0건인 칩은 선택지가 아니라 잡음이다 —
+                     누르면 빈 화면만 나오므로 고르는 데 기여하지 않는다.
+                     상태 정의 4종과 데이터·effectiveStatus() 로직은 그대로 두고
+                     '노출 조건' 하나만 바꾼다. 10월 실제 첫 회차 종료 후
+                     effectiveStatus()가 마감을 자동 승격시키면 마감 칩이 스스로 다시 나타난다. */
+                  if (stCount[st] === 0) return null;
                   const Icon = STATUS_ICON[st];
                   return (
                     <button
@@ -453,6 +478,23 @@ export default function KiumCoursesTab() {
                     </button>
                   );
                 })}
+                {/* [F23] 검토용 — ?preview 쿼리가 있을 때만 렌더된다. 고객 화면에는 존재하지 않는다.
+                    마감 시드 1건(F21)이 들어가면서 마감 칩이 더는 Empty Case를 만들지 않으므로,
+                    빈 상태 화면을 확인할 전용 수단이 필요해졌다.
+                    점선 테두리로 '실제 필터가 아님'을 형태로 말한다 — 색이 아니라 형태다.
+                    카운트는 항상 0이라 정보가 없어 표기하지 않고,
+                    data-st는 상태 아이콘 색 규칙(.kium-chip-st[data-st])에 걸리므로 주지 않는다. */}
+                {reviewMode && (
+                  <button
+                    type="button"
+                    className="kium-chip kium-chip-review"
+                    aria-pressed={status === 'empty'}
+                    aria-label="검토용 — 조건에 맞는 회차가 없는 화면 확인"
+                    onClick={() => setStatus('empty')}
+                  >
+                    Empty Case
+                  </button>
+                )}
               </div>
             </div>
           </>

@@ -499,3 +499,9 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   /* 보기 전환 페이드인은 JS에서도 건너뛰지만, 클래스가 붙어도 움직이지 않게 이중으로 막는다 */
   .kium-openblock.is-in{animation:none}
 }
+
+/* [F23] 검토용 칩 — 실제 필터가 아님을 '형태'로 구분한다(점선).
+   ?preview 쿼리가 있을 때만 렌더되므로 고객 화면에는 나타나지 않는다.
+   기존 .kium-chip 규칙을 상속하고 테두리 스타일만 덮는다 — 신규 색 토큰 0. */
+.kium-chip-review{border-style:dashed}
+.kium-chip-review[aria-pressed="true"]{border-style:dashed}

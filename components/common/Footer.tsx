@@ -91,7 +91,7 @@ export default function Footer() {
               <p className="note">{FOOT_NOTE}</p>
               <div className="sns">
                 {SNS.map((s) => (
-                  <a key={s.href} href={s.href} target="_blank" rel="noopener" aria-label={s.label}>
+                  <a key={s.href} className="tap44" href={s.href} target="_blank" rel="noopener" aria-label={s.label}>
                     <SnsIcon icon={s.icon} />
                   </a>
                 ))}
@@ -105,14 +105,14 @@ export default function Footer() {
               </dl>
               <div className="foot-policy">
                 {/* 이용약관은 페이지 미제작 확정(8/6)으로 구분점과 함께 삭제 — 구분점 2개 연속 금지 */}
-                <button className="report-link priv" type="button" aria-haspopup="dialog"
+                <button className="report-link priv tap44" type="button" aria-haspopup="dialog"
                         onClick={() => setPrivacyOpen(true)}>개인정보처리방침</button>
                 <span>·</span>
                 <Link href="/csr">KG그룹 사회공헌</Link>
                 <span>·</span>
-                <button className="report-link" type="button" onClick={() => setReport({ open: true, tab: 'info' })}>부정훈련 예방 안내</button>
+                <button className="report-link tap44" type="button" onClick={() => setReport({ open: true, tab: 'info' })}>부정훈련 예방 안내</button>
                 <span>·</span>
-                <button className="report-link" type="button" onClick={() => setReport({ open: true, tab: 'report' })}>부정훈련 신고</button>
+                <button className="report-link tap44" type="button" onClick={() => setReport({ open: true, tab: 'report' })}>부정훈련 신고</button>
                 <button type="button" className="isms-btn" onClick={() => setIsmsOpen(true)} aria-label="정보보호 관리체계(ISMS) 인증서 보기" aria-haspopup="dialog">
                   <Image className="isms-mark" src={ISMS_MARK_SRC} alt="ISMS 정보보호 관리체계 인증" width={116} height={82} />
                 </button>

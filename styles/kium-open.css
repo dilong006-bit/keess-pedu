@@ -244,9 +244,14 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 .kium-scard2 .kium-cta-ses,.kium-scard2 .kium-cta-next{width:100%;margin-top:2px}
 /* 모바일: 가로 스크롤 + snap. 마지막 카드가 일부 잘려 보이는 peek로 '뒤에 더 있다'를 알린다 */
 @media(max-width:767px){
+  /* [MO-06] snap 은 카드 단위 훑기 목적이라 mandatory 를 유지한다.
+     overscroll-behavior-x 로 가장자리 스와이프가 브라우저 뒤로가기로 연쇄되는 것만 막고,
+     .kium-filters 와 같은 mask 페이드로 '우측에 더 있음'을 같은 방식으로 알린다. */
   .kium-strip{grid-auto-flow:column;grid-auto-columns:82%;overflow-x:auto;
     scroll-snap-type:x mandatory;scroll-padding-left:0;padding-bottom:6px;
-    -webkit-overflow-scrolling:touch}
+    overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+    mask-image:linear-gradient(90deg,#000 88%,transparent)}
   .kium-strip.is-single{grid-auto-columns:100%;overflow-x:visible}
   .kium-scard2{scroll-snap-align:start}
 }
@@ -434,7 +439,9 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 .kium-scard2-course:hover,.kium-scard2-course:focus-visible{color:var(--ink);text-decoration:underline}
 .kium-scard2-course.is-static{text-decoration:none;color:var(--ink)}
 @media(max-width:767px){
-  .kium-ustrip{grid-auto-columns:82%}
+  .kium-ustrip{grid-auto-columns:82%;overscroll-behavior-x:contain;
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+    mask-image:linear-gradient(90deg,#000 88%,transparent)}
 }
 
 /* 전체 일정 전개 — PC/TB 인라인 텍스트 버튼 / MO 풀폭 버튼 */

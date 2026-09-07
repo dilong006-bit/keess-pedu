@@ -61,6 +61,14 @@ export const KIUM_STATUS_ORDER: KiumSessionStatus[] = ['recruiting', 'confirmed'
  *     가장 이른 3회차(10.12·10.14·10.19)는 스트립 첫 화면의 3상태 커버리지라 건드리지 않는다.
  *     10월 그룹 하나에 4상태가 모두 모여 기간 필터 하나로 전 상태를 비교할 수 있다.
  *
+ *   ★ 일정 확정 개정 3건(F24) — cs-r2 · relead-r3 · onpow-r2.
+ *     근거는 HRD솔루션팀 확정 통보(Google Sheets N열 교육시작일 · O열 교육종료일)다.
+ *     relead-r3의 요청 원문 `12/17(수)~18(금)`에 대해 이전에는
+ *     "요일 라벨만 틀렸고 날짜 17~18은 맞다"고 판단했으나, 확정본은 12/16~17(수~목)이다.
+ *     즉 원문에서 신뢰할 수 없었던 쪽은 요일이 아니라 날짜였고 요일이 맞았다 — 판단이 정확히 반대였다.
+ *     요일을 저장하지 않고 start에서 파생하는 설계 자체는 유효하다 —
+ *     확정 날짜만 넣으면 화면에 12.16(수) ~ 17(목)으로 정확히 출력된다.
+ *
  *   ★ seatsLeft는 데이터에 두지 않는다 — '잔여 N석'은 근거 없는 재고 주장이다.
  *     잔여석 표시 검증은 ?preview=badges 쇼케이스가 전담한다.
  *
@@ -90,18 +98,21 @@ export const KIUM_SESSIONS: KiumSession[] = [
   { id: 'report-r1', courseId: 'kium-14', displayMonth: 12, start: '2026-12-11', end: '2026-12-11', status: 'confirmed' },
   // CS·민원응대 — CS 종합 솔루션 (kium-19)
   { id: 'cs-r1',     courseId: 'kium-19', displayMonth: 10, start: '2026-10-26', end: '2026-10-26', status: 'closing' },
-  { id: 'cs-r2',     courseId: 'kium-19', displayMonth: 11, start: '2026-11-17', end: '2026-11-17', status: 'confirmed' },
+  { id: 'cs-r2',     courseId: 'kium-19', displayMonth: 11, start: '2026-11-20', end: '2026-11-20', status: 'confirmed' },
   { id: 'cs-r3',     courseId: 'kium-19', displayMonth: 12, start: '2026-12-21', end: '2026-12-21', status: 'recruiting' },
   // 리더십·관리자 — 진단 기반 팀장 리더십 Re-Lead (kium-04)
   { id: 'relead-r1', courseId: 'kium-04', displayMonth: 10, start: '2026-10-21', end: '2026-10-22', status: 'closed' },
   { id: 'relead-r2', courseId: 'kium-04', displayMonth: 11, start: '2026-11-18', end: '2026-11-19', status: 'recruiting' },
-  // 원문 표기 `12/17(수)~18(금)`에서 틀린 것은 **요일 라벨 (수) 하나뿐**이다(2026-12-17=목).
-  //   날짜 17~18은 2일로 과정 길이(14시간·2일)와 정합하고, 요일은 이 파일이 start에서 파생하므로
-  //   화면에는 `12.17(목) ~ 18(금)`으로 자동 교정되어 출력된다. 원문 날짜를 그대로 신뢰한다.
-  { id: 'relead-r3', courseId: 'kium-04', displayMonth: 12, start: '2026-12-17', end: '2026-12-18', status: 'recruiting' },
+  // [당시 판단 · 이력] 원문 표기 `12/17(수)~18(금)`에서 틀린 것은 **요일 라벨 (수) 하나뿐**이고
+  //   날짜 17~18은 2일로 과정 길이(14시간·2일)와 정합한다고 보아 원문 날짜를 그대로 신뢰했다.
+  // [정정 · F24] 확정본은 `12/16~17`이고 이는 **수~목**이다.
+  //   원문에서 맞았던 것은 시작 요일 (수)이고, 틀렸던 것은 날짜다 — 당시 판단이 정확히 반대였다.
+  //   설계는 그대로 유효하다: 요일을 저장하지 않으므로 확정 날짜만 넣으면
+  //   화면에 `12.16(수) ~ 17(목)`으로 정확히 출력된다.
+  { id: 'relead-r3', courseId: 'kium-04', displayMonth: 12, start: '2026-12-16', end: '2026-12-17', status: 'recruiting' },
   // 신입·온보딩 — On-Powering 리텐션 (kium-03)
   { id: 'onpow-r1',  courseId: 'kium-03', displayMonth: 12, start: '2026-12-09', end: '2026-12-10', status: 'recruiting' },
-  { id: 'onpow-r2',  courseId: 'kium-03', displayMonth: 12, start: '2026-12-16', end: '2026-12-17', status: 'recruiting' },
+  { id: 'onpow-r2',  courseId: 'kium-03', displayMonth: 12, start: '2026-12-28', end: '2026-12-29', status: 'recruiting' },
 ];
 
 /** 공개교육 개설 과정 id — KIUM_SESSIONS에서 파생(수기 목록 금지) */

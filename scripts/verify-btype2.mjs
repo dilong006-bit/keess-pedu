@@ -840,6 +840,52 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.close();
 }
 
+/* ═══ F24 — 회차 일정 확정 개정 3건 ═══════════════════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(700);
+
+  const groups = await p.locator('.kium-mgroup').evaluateAll((els) =>
+    els.map((g) => ({
+      head: g.querySelector('.kium-mgroup-t')?.textContent.trim() || '',
+      dates: [...g.querySelectorAll('.kium-srow-date b')].map((b) => b.textContent.trim()),
+    }))
+  );
+  const nov = groups.find((g) => g.head.startsWith('11월'));
+  const dec = groups.find((g) => g.head.startsWith('12월'));
+  const short = (a) => a.map((d) => d.replace(/\(.*$/, '').trim()).join(' · ');
+
+  /* U1~U3 — 요일은 데이터가 아니라 start에서 파생된다. 확정 날짜만 넣어도 정확히 나오는지 본다 */
+  const all = groups.flatMap((g) => g.dates);
+  const find = (pre) => all.find((d) => d.startsWith(pre)) || '(없음)';
+  ok('U1 cs-r2 = 11.20(금)', /^11\.20\(금\)$/.test(find('11.20')), find('11.20'));
+  ok('U2 relead-r3 = 12.16(수) ~ 17(목)', /^12\.16\(수\) ~ 17\(목\)$/.test(find('12.16')), find('12.16'));
+  ok('U3 onpow-r2 = 12.28(월) ~ 29(화)', /^12\.28\(월\) ~ 29\(화\)$/.test(find('12.28')), find('12.28'));
+
+  ok('U4 11월 그룹 = 11.2 · 11.9 · 11.12 · 11.16 · 11.18 · 11.20',
+    short(nov.dates) === '11.2 · 11.9 · 11.12 · 11.16 · 11.18 · 11.20', short(nov.dates));
+  ok('U5 12월 그룹 = 11.30 · 12.7 · 12.9 · 12.11 · 12.14 · 12.16 · 12.21 · 12.28',
+    short(dec.dates) === '11.30 · 12.7 · 12.9 · 12.11 · 12.14 · 12.16 · 12.21 · 12.28', short(dec.dates));
+
+  /* U9 — 스트립 첫 6장은 10월 회차로만 구성돼 무영향이어야 한다 */
+  await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(900);
+  const strip = short(await p.locator('.kium-ustrip .kium-scard2-date b').allTextContents());
+  ok('U9 스트립 첫 6장 무변경 = 10.12 · 10.14 · 10.19 · 10.26 · 10.27 · 11.2',
+    strip === '10.12 · 10.14 · 10.19 · 10.26 · 10.27 · 11.2', strip);
+
+  /* U10 — cs-r2 회차 CTA 프리필 */
+  await p.goto(`${BASE}/kium?tab=courses&mode=open&consult=1&course=kium-19&session=cs-r2`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1300);
+  const pre = await ta(p).inputValue();
+  ok('U10 cs-r2 프리필 = · 희망 회차: 11.20(금) · 1일 (개강확정)',
+    /· 희망 회차: 11\.20\(금\) · 1일 \(개강확정\)/.test(pre), JSON.stringify(pre.split('\n')[2]));
+  await p.close();
+}
+
 /* ═══ F21 · F22 · F23 — 마감 시드 · 0건 칩 · Empty 검토 칩 ══════ */
 {
   const p = await browser.newPage({ viewport: PC });
@@ -1168,7 +1214,8 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   const num = (d) => { const [m, dd] = d.split('.').map(Number); return m * 100 + dd; };
   const asc = (a) => a.every((d, i) => i === 0 || num(a[i - 1]) <= num(d));
   /* [F21 갱신] F20 규칙도 '1차 closed 뒤로 → 2차 날짜'다. 마감 회차가 생긴 kium-04는
-     11.18 · 12.17 · 10.21(마감)이 정상 — 미마감 구간만 오름차순이면 된다. */
+     11.18 · 12.16 · 10.21(마감)이 정상 — 미마감 구간만 오름차순이면 된다.
+     [F24] relead-r3가 12.17~18 → 12.16~17로 확정 개정되어 두 번째 값이 바뀌었다. */
   const openDates = (r) => r.dates.filter((_, i) => r.stats[i] !== 'closed');
   const shutDates = (r) => r.dates.filter((_, i) => r.stats[i] === 'closed');
   const bad = rows.filter((r) => !asc(openDates(r)) || !asc(shutDates(r)));
@@ -1180,9 +1227,16 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   ok('O2 kium-10 = 10.14 · 11.9 · 12.7', /^10\.14 · 11\.0?9 · 12\.0?7$/.test(k10), k10);
   /* [F21 신설] 마감 회차가 있는 유일한 과정 — closed가 최하단인지 직접 본다 */
   const r04 = rows.find((r) => r.id === 'kium-04');
-  ok('O5 kium-04 = 11.18 · 12.17 · 10.21(마감 최하단)',
-    r04.dates.join(' · ') === '11.18 · 12.17 · 10.21' && r04.stats[2] === 'closed',
+  ok('O5 kium-04 = 11.18 · 12.16 · 10.21(마감 최하단)',
+    r04.dates.join(' · ') === '11.18 · 12.16 · 10.21' && r04.stats[2] === 'closed',
     `${r04.dates.join(' · ')} / ${r04.stats.join(',')}`);
+
+  /* [F24] 확정 개정 3건이 닿는 과정은 kium-04(O5) · kium-03 · kium-19 셋이다.
+     O3가 '오름차순'만 보므로 바뀐 값 자체를 고정하는 단언을 함께 둔다. */
+  const k03 = rows.find((r) => r.id === 'kium-03').dates.join(' · ');
+  const k19 = rows.find((r) => r.id === 'kium-19').dates.join(' · ');
+  ok('O6 kium-03 = 12.9 · 12.28 (onpow-r2 확정 개정)', /^12\.0?9 · 12\.28$/.test(k03), k03);
+  ok('O7 kium-19 = 10.26 · 11.20 · 12.21 (cs-r2 확정 개정)', /^10\.26 · 11\.20 · 12\.21$/.test(k19), k19);
 
   /* O4 — 두 변형 순서 일치 */
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });

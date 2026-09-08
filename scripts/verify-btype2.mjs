@@ -841,6 +841,76 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.close();
 }
 
+/* ═══ F24 · F25 · F26 — 마감 회차 노출 ════════════════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  const openTab = async () => {
+    await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+    await p.waitForTimeout(1500);
+  };
+
+  /* A2 — 마감 선택 시 일정 박스 본문이 리스트로 대체된다(빈 문구 아님) */
+  await openTab();
+  await p.locator('.kium-chip-st[data-st="closed"]').click();
+  await p.waitForTimeout(900);
+  const a2 = await p.evaluate(() => {
+    const bd = document.querySelector('.kium-schedbox-body');
+    return {
+      strip: bd.querySelectorAll('.kium-ustrip .kium-scard2').length,
+      slist: bd.querySelectorAll('.kium-slist').length,
+      rows: bd.querySelectorAll('.kium-srow').length,
+      none: bd.querySelectorAll('.kium-noses.kium-ustrip-none').length,
+      date: bd.querySelector('.kium-srow-date b')?.textContent.trim(),
+    };
+  });
+  ok('A2 [F24] 마감 선택 — 본문이 .kium-slist 폴백 · 빈 문구 미노출',
+    a2.slist === 1 && a2.rows === 1 && a2.none === 0 && a2.strip === 0 && /^10\.21/.test(a2.date || ''),
+    JSON.stringify(a2));
+
+  /* A4 — 마감 행 구성(배지 + 텍스트 링크 · 1행) */
+  const a4 = await p.evaluate(() => {
+    const r = document.querySelector('.kium-schedbox-body .kium-srow[data-status="closed"]');
+    if (!r) return null;
+    const el = r.querySelector('.kium-sact-closed');
+    const mid = (n) => { const q = n.getBoundingClientRect(); return q.top + q.height / 2; };
+    return {
+      badge: el.querySelector('.kium-sbadge').textContent.trim(),
+      link: el.querySelector('.kium-cta-next').textContent.trim(),
+      oneLine: Math.abs(mid(el.querySelector('.kium-sbadge')) - mid(el.querySelector('.kium-cta-next'))) < 4,
+      isButton: !!el.querySelector('.kium-sact'),
+    };
+  });
+  ok('A4 [F24] 폴백 마감 행 — 정적 배지 `마감` + 링크 `다음 회차 상담` · 1행',
+    a4 && a4.badge === '마감' && a4.link === '다음 회차 상담' && a4.oneLine && !a4.isButton,
+    JSON.stringify(a4));
+
+  /* B2 — 마감 필터에서 과정 카드가 마감 회차를 말한다 */
+  const b2 = await p.evaluate(() => {
+    const c = document.querySelector('#kium-cardwrap-kium-04 .kium-card-next');
+    return c ? { text: c.innerText.replace(/\s+/g, ' ').trim(), st: c.getAttribute('data-status') } : null;
+  });
+  ok('B2 [F25] 마감 필터 — Re-Lead 카드 회차 레이어 = 10.21~22 마감',
+    b2 && /^10\.21~22\s*마감$/.test(b2.text) && b2.st === 'closed', JSON.stringify(b2));
+  await p.close();
+}
+
+{
+  /* C1 — Empty Case 화면 문구·버튼 */
+  const p = await browser.newPage({ viewport: PC });
+  await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=cases`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1400);
+  await p.locator('.kium-chip-review').click();
+  await p.waitForTimeout(800);
+  const c1 = await p.evaluate(() => {
+    const e = document.querySelector('.kium-empty2');
+    return e ? { text: e.innerText.replace(/\s+/g, ' ').trim(), btn: e.querySelector('button')?.innerText.trim() } : null;
+  });
+  ok('C1 [F26] Empty Case — `해당 조건의 회차가 없습니다.` + [필터 초기화]',
+    c1 && c1.text.startsWith('해당 조건의 회차가 없습니다.') && c1.btn === '필터 초기화',
+    JSON.stringify(c1));
+  await p.close();
+}
+
 /* ═══ F24 — 회차 일정 확정 개정 3건 ═══════════════════════════════ */
 {
   const p = await browser.newPage({ viewport: PC });

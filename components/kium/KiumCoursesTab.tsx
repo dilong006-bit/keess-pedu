@@ -597,6 +597,7 @@ export default function KiumCoursesTab() {
           categories={categories}
           cat={cat}
           onCat={changeCat}
+          scope={isOpenMode ? visible : undefined}
           hideFilters
           variant={isOpenMode ? 'open' : 'default'}
           thumbs={isOpenMode ? KIUM_OPEN_THUMBS : undefined}

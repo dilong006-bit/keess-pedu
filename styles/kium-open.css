@@ -243,6 +243,9 @@ button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--sh
   background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;
   box-shadow:var(--shadow-1)}
 .kium-scard2[data-status="closed"]{opacity:.72;background:var(--surface)}
+/* [F25] 카드 회차 레이어가 마감을 말할 때도 같은 저채도 규칙을 따른다 —
+   행 전체가 아니라 회차 레이어만 낮춘다(카드 본문은 여전히 선택 대상이다). */
+.kium-card-next[data-status="closed"]{opacity:.72}
 .kium-scard2-date{display:flex;align-items:center;gap:6px;color:var(--p1)}
 .kium-scard2-date b{font-size:15.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em;
   font-variant-numeric:tabular-nums}
@@ -458,6 +461,10 @@ button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--sh
 /* 전체 일정 목록 — 컨테이너 본문에서 스트립과 자리를 바꾼다.
    자체 구분선은 두지 않는다(헤더 행 선과 겹친다) */
 .kium-ulist{margin-top:0}
+/* [F24] 폴백 리스트 등장 — .kium-openblock 과 같은 200ms 토큰을 재사용한다(신규 모션 0).
+   reduced-motion 은 파일 하단 공통 규칙이 아니라 여기서 직접 끈다 — 이 애니메이션만의 문제다. */
+.kium-ulist.is-in{animation:kium-mode-in 200ms var(--ease-out) both}
+@media(prefers-reduced-motion:reduce){.kium-ulist.is-in{animation:none}}
 
 /* ── 전체 보기 카드의 개설 뱃지 ─────────────────────────────────
    카드(button) 바깥 형제라 확장 토글과 이벤트가 섞이지 않는다.

@@ -5,7 +5,7 @@ import KiumThumb from './KiumThumb';
 import SessionBadge from './SessionBadge';
 import { IconCalendarDays } from './kiumIcons';
 import { KIUM_CATEGORY_META, type KiumCourse } from '@/lib/kium/data';
-import { effectiveStatus, fmtRangeShort, getNearestSession } from '@/lib/kium/sessions';
+import { effectiveStatus, fmtRangeShort, getNearestSession, getSessionsOfCourse, type KiumSession } from '@/lib/kium/sessions';
 
 /**
  * F7/F8 과정 카드 — 기술명세서 v1.0 §4
@@ -29,6 +29,7 @@ export default function KiumCourseCard({
   variant = 'default',
   thumbSrc,
   now = null,
+  scope,
 }: {
   course: KiumCourse;
   open: boolean;
@@ -38,9 +39,28 @@ export default function KiumCourseCard({
   /** 공개교육 탭 전용 썸네일 경로 override (data.ts 무변경) */
   thumbSrc?: string;
   now?: Date | null;
+  /** [F25] 현재 필터가 적용된 회차 목록. 미지정 시 전량 기준(현행 동작) */
+  scope?: KiumSession[];
 }) {
   const isOpen = variant === 'open';
-  const nearest = isOpen ? getNearestSession(course.id, now) : undefined;
+  /**
+   * [F25] 카드가 말하는 회차는 '지금 걸려 있는 필터의 결과' 안에서 고른다.
+   *   마감을 골라 놓고 카드에 모집중 회차가 뜨면 화면이 서로 다른 말을 한다.
+   *   scope 가 없으면(미지정 호출부) 현행대로 전량 기준 — 데스크톱·타 경로 무변경.
+   *   1순위 신청 가능한 가장 이른 회차 · 2순위 없으면 가장 이른 회차(마감 포함).
+   */
+  const scoped = scope?.filter((s) => s.courseId === course.id).slice().sort((a, b) => a.start.localeCompare(b.start));
+  const nearest = !isOpen
+    ? undefined
+    : scoped
+      ? (scoped.find((s) => effectiveStatus(s, now) !== 'closed') ?? scoped[0])
+      : getNearestSession(course.id, now);
+  /* '외 n건'은 **필터로 좁혀졌을 때만** 말한다.
+     모집 상태 '전체'에서는 scope 가 그 과정의 전 회차와 같으므로 병기하지 않는다 —
+     카드를 열면 어차피 다 보이고, 붙이면 현행 표기가 바뀌어 회귀가 된다(B1 기준).
+     걸러진 상태에서만 '조건에 맞는 게 더 있다'가 새 정보가 된다. */
+  const total = scoped ? getSessionsOfCourse(course.id).length : 0;
+  const extra = scoped && scoped.length < total ? Math.max(0, scoped.length - 1) : 0;
 
   return (
     <button
@@ -94,11 +114,12 @@ export default function KiumCourseCard({
 
         {/* 최근접 회차 — 카드 단계에서 "언제"가 보이게 한다(§4-1 ⑥) */}
         {isOpen && (
-          <span className="kium-card-next">
+          <span className="kium-card-next" data-status={nearest ? effectiveStatus(nearest, now) : undefined}>
             {nearest ? (
               <>
                 <IconCalendarDays size={16} />
                 <b>{fmtRangeShort(nearest)}</b>
+                {extra > 0 && <span className="soft">외 {extra}건</span>}
                 <SessionBadge status={effectiveStatus(nearest, now)} seatsLeft={nearest.seatsLeft} />
               </>
             ) : (

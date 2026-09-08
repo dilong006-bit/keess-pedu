@@ -71,6 +71,20 @@ export default function UpcomingSessionsStrip({
   const shown = upcoming.slice(0, mo ? MO_MAX : PC_MAX);
   const bodyId = 'kium-schedbox-body';
 
+  /**
+   * [F24] 스트립이 0장이 되는 순간(= 필터 결과가 마감뿐일 때) 같은 자리를 리스트가 대신한다.
+   *   스트립은 「다가오는 신청 가능 일정」 화면이라 마감을 넣지 않는다(F21 채택 근거) —
+   *   그 규칙은 그대로 두고, 결과를 보여 줄 수단만 바꾼다.
+   *   기존에는 "전체 일정에서 확인하세요"라는 안내만 띄워 조작을 한 번 더 요구했다.
+   */
+  const fallback = sessions.length > 0 && shown.length === 0;
+
+  /* 폴백 진입을 스크린리더에 1회 고지한다. 화면은 바뀌었는데 말이 없으면 알 길이 없다 */
+  useEffect(() => {
+    if (!fallback) return;
+    setLive(`조건에 맞는 회차 ${sessions.length}건을 일정 목록으로 표시했습니다`);
+  }, [fallback, sessions.length]);
+
   const toggle = () => {
     const next = !expanded;
     setExpanded(next);
@@ -112,11 +126,25 @@ export default function UpcomingSessionsStrip({
               onCourseFocus={onCourseFocus}
             />
           </div>
+        ) : fallback ? (
+          /* [F24] 마감만 남은 상태 — 「전체 일정」이 쓰는 리스트를 그대로 재사용한다.
+             신규 컴포넌트를 만들지 않는다. 데이터는 현재 필터가 적용된 회차 그대로다.
+             토글은 헤더에 그대로 있어 전개·복귀가 된다. */
+          <div className="kium-ulist is-in">
+            <SessionListView
+              sessions={sessions}
+              now={now}
+              onConsultSession={onConsultSession}
+              showMonthCta={false}
+              onCourseFocus={onCourseFocus}
+            />
+          </div>
         ) : shown.length === 0 ? (
-          // 필터 결과에 미마감 회차가 없는 경우 — 마감만 남은 상태다. 토글은 헤더에 그대로 있다
-          <p className="kium-noses kium-ustrip-none">
-            해당 조건에 신청 가능한 회차가 없습니다. 전체 일정에서 지난 회차를 확인하실 수 있습니다.
-          </p>
+          /* [F26] F24 폴백이 앞서므로 이 자리는 sessions 자체가 0건일 때만 남는다 —
+             그 경우는 상위(KiumCoursesTab)의 .kium-empty2 가 이미 처리하므로 실제로는 도달하지 않는다.
+             방어적으로 남기되 문구는 사실에 맞춘다: relead-r1(10.21)은 미래 날짜의 정원 충족 마감이라
+             '지난 회차'가 아니다. */
+          <p className="kium-noses kium-ustrip-none">해당 조건의 회차가 없습니다.</p>
         ) : (
           <div className="kium-ustrip">
             {shown.map((s) => {

@@ -52,6 +52,8 @@ interface Props {
   /** 공개교육 탭 전용 썸네일 맵 (data.ts 무변경) */
   thumbs?: Record<string, string>;
   now?: Date | null;
+  /** [F25] 현재 필터가 적용된 회차 목록 — 카드 회차 레이어의 모수 */
+  scope?: KiumSession[];
   onConsultSession?: (s: KiumSession) => void;
   onConsultCourse?: (c: KiumCourse) => void;
   /**
@@ -89,6 +91,7 @@ interface Props {
  */
 export default function KiumCourseGrid({
   courses, categories, idPrefix = '', variant = 'default', thumbs, now = null,
+  scope,
   onConsultSession, onConsultCourse,
   cat: catProp, onCat, hideFilters = false, onOpenBadge, focusCourse = null,
 }: Props) {
@@ -284,6 +287,7 @@ export default function KiumCourseGrid({
                   variant={variant}
                   thumbSrc={thumbs?.[course.id]}
                   now={now}
+                  scope={scope}
                 />
                 {/* 개설 뱃지 — 카드(button) 형제라 확장 토글과 이벤트가 섞이지 않는다 */}
                 {onOpenBadge && isOpenCourse(course.id) && (

@@ -151,7 +151,16 @@
   background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 18px;
   box-shadow:var(--shadow-1)}
 /* 마감 회차는 흐림으로만 후퇴시킨다. 취소선은 쓰지 않는다(가독성 훼손) */
-.kium-srow[data-status="closed"]{opacity:.72;background:var(--surface)}
+/* [A11Y] 마감 표현에서 opacity 를 걷는다.
+   opacity 는 전경과 배경을 **함께** 흐리게 만들어 대비 자체를 무너뜨린다 —
+   실측 배지 3.5:1 · 링크 3.39:1 로 AA(4.5:1) 미달이었다.
+   색만 진하게 해서는 회복되지 않는다(배경도 같이 밝아지므로).
+   위계는 그대로 둔다: 배경 --surface + 진한 텍스트를 --muted 로 한 단계 낮춘다.
+   --muted on --surface = 6.54:1, 배지 pill = 6.87:1 로 AA 를 넘긴다.
+   '마감은 흐리게'라는 의도는 유지되고 판독만 회복된다. */
+.kium-srow[data-status="closed"]{background:var(--surface)}
+.kium-srow[data-status="closed"] .kium-srow-date b,
+.kium-srow[data-status="closed"] .kium-srow-title{color:var(--muted)}
 .kium-srow-date{display:flex;align-items:center;gap:7px;color:var(--p1)}
 .kium-srow-date b{font-size:16.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em;
   font-variant-numeric:tabular-nums}
@@ -242,10 +251,12 @@ button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--sh
 .kium-scard2{display:flex;flex-direction:column;align-items:flex-start;gap:8px;
   background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;
   box-shadow:var(--shadow-1)}
-.kium-scard2[data-status="closed"]{opacity:.72;background:var(--surface)}
+.kium-scard2[data-status="closed"]{background:var(--surface)}
+.kium-scard2[data-status="closed"] .kium-scard2-date b,
+.kium-scard2[data-status="closed"] .kium-scard2-course{color:var(--muted)}
 /* [F25] 카드 회차 레이어가 마감을 말할 때도 같은 저채도 규칙을 따른다 —
    행 전체가 아니라 회차 레이어만 낮춘다(카드 본문은 여전히 선택 대상이다). */
-.kium-card-next[data-status="closed"]{opacity:.72}
+.kium-card-next[data-status="closed"] b{color:var(--muted)}
 .kium-scard2-date{display:flex;align-items:center;gap:6px;color:var(--p1)}
 .kium-scard2-date b{font-size:15.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em;
   font-variant-numeric:tabular-nums}

@@ -40,7 +40,7 @@
 @media(max-width:820px){.bento{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.bento{grid-template-columns:1fr}}
 .bento-cell{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--shadow-1);transition:transform .3s var(--ease),box-shadow .4s var(--ease)}
-.bento-cell:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+@media (hover:hover) and (pointer:fine){.bento-cell:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}}
 .bento-cell.c-sys{grid-column:span 2}
 .bento-cell.wide{grid-column:span 2}
 @media(max-width:820px){.bento-cell.c-sys,.bento-cell.wide{grid-column:span 2}}
@@ -123,7 +123,7 @@
 .kw-name{flex:1;font-size:13px;font-weight:600}
 .kw-actions{display:flex;align-items:center;gap:5px}
 .kw-mv{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;font-size:12px;font-weight:800;line-height:1;font-family:inherit}
-.kw-mv:hover{border-color:color-mix(in srgb,var(--p3) 55%,#fff);color:var(--p3)}
+@media (hover:hover) and (pointer:fine){.kw-mv:hover{border-color:color-mix(in srgb,var(--p3) 55%,#fff);color:var(--p3)}}
 .kw-sw{width:40px;height:23px;border-radius:999px;border:none;background:color-mix(in srgb,var(--p3) 25%,#fff);cursor:pointer;position:relative;transition:background .2s}
 .kw-sw::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:left .2s var(--ease-out)}
 .kw-sw.on{background:var(--p3)}
@@ -204,7 +204,7 @@
 /* ── 솔루션 모듈 탭 ─────────────────────────────────────────────────── */
 .tabs{display:flex;flex-wrap:wrap;gap:9px;margin-top:34px}
 .tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 18px;font-size:14px;font-weight:700;color:#3a3a42;cursor:pointer;font-family:inherit;transition:all .22s var(--ease)}
-.tab:hover{border-color:color-mix(in srgb,var(--p3) 45%,#fff)}
+@media (hover:hover) and (pointer:fine){.tab:hover{border-color:color-mix(in srgb,var(--p3) 45%,#fff)}}
 .tab.on{background:var(--p3);color:#fff;border-color:var(--p3)}
 .tab-panel{margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:var(--shadow-1)}
 .mp-head .mp-k{font-size:12px;font-weight:800;color:var(--p3);letter-spacing:.03em}
@@ -260,9 +260,9 @@
 .gc-copy span{display:block;font-size:13.5px;color:rgba(255,255,255,.78);margin-top:8px;line-height:1.6;max-width:60ch;word-break:keep-all}
 /* K4: 환급 링크는 상담 문구에 이어 붙지 않고 별도 줄로 노출 */
 .gc-link{display:inline-block;margin-top:10px;color:var(--gov);font-weight:700;text-decoration:none}
-.gc-link:hover{text-decoration:underline;text-underline-offset:3px}
+@media (hover:hover) and (pointer:fine){.gc-link:hover{text-decoration:underline;text-underline-offset:3px}}
 .gov-cta .btn{background:#fff;color:var(--p3);white-space:nowrap;flex:none;padding:15px 32px;font-size:15px;font-weight:700}
-.gov-cta .btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}
+@media (hover:hover) and (pointer:fine){.gov-cta .btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}}
 .gov-note{font-size:11.5px;color:#9aa0a8;margin-top:18px;line-height:1.6}
 
 /* ── 도입문의 ───────────────────────────────────────────────────────── */

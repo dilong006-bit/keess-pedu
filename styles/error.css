@@ -19,19 +19,19 @@
 .nf-cta{margin-top:32px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .nf-cta .btn-ink{padding:15px 30px;font-size:16px}
 .nf-cta .btn-line{display:inline-flex;align-items:center;justify-content:center;padding:15px 28px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;font-weight:700;font-size:15px;transition:border-color .2s var(--ease),transform .2s var(--ease)}
-.nf-cta .btn-line:hover{border-color:var(--ink);transform:translateY(-2px)}
+@media (hover:hover) and (pointer:fine){.nf-cta .btn-line:hover{border-color:var(--ink);transform:translateY(-2px)}}
 .nf-svc-label{margin-top:58px;font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--muted)}
 .nf-cards{margin-top:18px;width:100%;max-width:var(--maxw);display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 @media(max-width:820px){.nf-cards{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.nf-cards{grid-template-columns:1fr}}
 .nf-card{position:relative;display:block;text-align:left;background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 20px 20px;box-shadow:var(--shadow-1);overflow:hidden;transition:transform .25s var(--ease),box-shadow .3s var(--ease)}
 .nf-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--acc)}
-.nf-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+@media (hover:hover) and (pointer:fine){.nf-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}}
 /* 아이콘 칩 — 사이트 .hx-ic 패턴(color-mix 11% 틴트) 재사용 */
 .nf-card .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
   background:color-mix(in srgb,var(--acc) 11%,#fff);color:var(--acc);transition:background .25s var(--ease)}
 .nf-card .ic svg{width:21px;height:21px}
-.nf-card:hover .ic{background:color-mix(in srgb,var(--acc) 18%,#fff)}
+@media (hover:hover) and (pointer:fine){.nf-card:hover .ic{background:color-mix(in srgb,var(--acc) 18%,#fff)}}
 .nf-card h3{margin-top:14px;font-size:16.5px;font-weight:800;color:var(--ink)}
 .nf-card p{margin-top:6px;font-size:13px;color:var(--muted);line-height:1.55;word-break:keep-all;text-wrap:balance}
 .nf-card .go{margin-top:16px;display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--acc)}

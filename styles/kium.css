@@ -70,8 +70,10 @@
   min-height:44px;padding:15px 26px;border-radius:999px;border:1px solid var(--line);
   background:#fff;color:var(--ink);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
   transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease)}
-.kium-btn-ghost:hover,.kium-btn-ghost:focus-visible{transform:translateY(-2px);
+.kium-btn-ghost:focus-visible{transform:translateY(-2px);
   box-shadow:var(--shadow-1);border-color:#c9ccd3}
+@media (hover:hover) and (pointer:fine){.kium-btn-ghost:hover{transform:translateY(-2px);
+  box-shadow:var(--shadow-1);border-color:#c9ccd3}}
 
 /* ── 중층: KiumThumb 카드 스택 3장 (hero-art.webp 미존재 시) ── */
 .kium-hero-art{position:relative;display:flex;justify-content:center;align-items:center;
@@ -88,9 +90,9 @@
    맨 앞 카드만 과정명을 노출하고, 나머지는 카테고리 표면색으로 구분된다. */
 .kium-stack-card:not(:nth-child(3)) .kium-thumb-title,
 .kium-stack-card:not(:nth-child(3)) .kium-thumb-cat{display:none}
-/* 호버 시 간격만 살짝 펼침(그라디언트 변화 없음) */
-.kium-hero-stack:hover .kium-stack-card:nth-child(1){transform:rotate(-9deg) translate(-19%,5%) scale(.94)}
-.kium-hero-stack:hover .kium-stack-card:nth-child(3){transform:rotate(9deg) translate(19%,-5%) scale(.94)}
+@media (hover:hover) and (pointer:fine){/* 호버 시 간격만 살짝 펼침(그라디언트 변화 없음) */
+.kium-hero-stack:hover .kium-stack-card:nth-child(1){transform:rotate(-9deg) translate(-19%,5%) scale(.94)}}
+@media (hover:hover) and (pointer:fine){.kium-hero-stack:hover .kium-stack-card:nth-child(3){transform:rotate(9deg) translate(19%,-5%) scale(.94)}}
 /* 아트웍 슬롯(옵션 트랙 B) — public/kium/hero-art.webp 존재 시 */
 .kium-hero-artwork{width:min(100%,420px);aspect-ratio:4/3;border-radius:18px;overflow:hidden;
   box-shadow:var(--shadow-2)}
@@ -119,7 +121,8 @@
 .kium-tab{position:relative;display:inline-flex;align-items:center;gap:8px;padding:0 20px;
   min-height:44px;border:none;background:none;font-family:inherit;font-size:15px;font-weight:700;
   color:var(--muted);cursor:pointer;transition:color .3s var(--ease)}
-.kium-tab:hover,.kium-tab:focus-visible{color:var(--ink)}
+.kium-tab:focus-visible{color:var(--ink)}
+@media (hover:hover) and (pointer:fine){.kium-tab:hover{color:var(--ink)}}
 .kium-tab[aria-selected="true"]{color:var(--p1)}
 /* 인디케이터 — 즉시 교체 금지, 좌표·폭 morph */
 .kium-tab-ind{position:absolute;left:0;bottom:0;height:2.5px;background:var(--p1);border-radius:2px;
@@ -171,7 +174,8 @@
 .kium-inline-link{display:inline-flex;align-items:center;gap:5px;min-height:44px;
   font-size:13.5px;font-weight:700;color:var(--p1);background:none;border:none;padding:0;
   font-family:inherit;cursor:pointer;transition:color .3s var(--ease)}
-.kium-inline-link:hover,.kium-inline-link:focus-visible{text-decoration:underline;text-underline-offset:3px}
+.kium-inline-link:focus-visible{text-decoration:underline;text-underline-offset:3px}
+@media (hover:hover) and (pointer:fine){.kium-inline-link:hover{text-decoration:underline;text-underline-offset:3px}}
 
 /* C1 삽입 슬롯(지원율 금액 환산 다이어그램) — 사업 확인 후 1행 추가로 확장 가능 */
 .kium-overview-slot{display:none}
@@ -184,7 +188,10 @@
 .kium-elig{background:#fff;border:1px solid var(--line);border-radius:var(--r);
   box-shadow:var(--shadow-1);overflow:hidden;
   transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
-@media(min-width:901px){.kium-elig:hover,.kium-elig:focus-within{transform:translateY(-3px);box-shadow:var(--shadow-2)}}
+@media(min-width:901px){.kium-elig:focus-within{transform:translateY(-3px);box-shadow:var(--shadow-2)}}
+@media (hover:hover) and (pointer:fine) and (min-width:901px){
+  .kium-elig:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+}
 .kium-elig-head{display:flex;align-items:center;gap:9px;width:100%;padding:20px;
   background:none;border:none;font-family:inherit;text-align:left;min-height:44px;cursor:default}
 /* [수정 2] 카드별 lucide 아이콘 */
@@ -220,7 +227,8 @@
   padding:11px 17px;border:1px solid var(--line);background:#fff;border-radius:999px;
   font-size:13.5px;font-weight:700;color:var(--p1);
   transition:background-color .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease)}
-.kium-elig-link:hover,.kium-elig-link:focus-visible{background-color:var(--surface);box-shadow:var(--shadow-1)}
+.kium-elig-link:focus-visible{background-color:var(--surface);box-shadow:var(--shadow-1)}
+@media (hover:hover) and (pointer:fine){.kium-elig-link:hover{background-color:var(--surface);box-shadow:var(--shadow-1)}}
 .kium-elig-link svg{flex:none}
 
 /* 모바일 아코디언 3단(기본 첫 항목 펼침) */
@@ -333,7 +341,8 @@
   padding:10px 16px;border:1px solid var(--line);background:#fff;border-radius:999px;
   font-family:inherit;font-size:13.5px;font-weight:600;color:#3a3a42;cursor:pointer;white-space:nowrap;
   transition:color .3s var(--ease),background-color .3s var(--ease),border-color .3s var(--ease)}
-.kium-chip:hover,.kium-chip:focus-visible{border-color:#c9ccd3;color:var(--ink)}
+.kium-chip:focus-visible{border-color:#c9ccd3;color:var(--ink)}
+@media (hover:hover) and (pointer:fine){.kium-chip:hover{border-color:#c9ccd3;color:var(--ink)}}
 .kium-chip[aria-pressed="true"]{background-color:var(--p1);border-color:var(--p1);color:#fff}
 .kium-chip .cnt{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--muted)}
 /* [MO-07] 320px에서 칩 행 콘텐츠가 뷰포트의 2.4배다(client 272 vs scroll 665).
@@ -368,7 +377,8 @@
   border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-1);
   font-family:inherit;padding:0;cursor:pointer;min-height:44px;
   transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease)}
-.kium-card:hover,.kium-card:focus-visible{transform:translateY(-4px);box-shadow:var(--shadow-2)}
+.kium-card:focus-visible{transform:translateY(-4px);box-shadow:var(--shadow-2)}
+@media (hover:hover) and (pointer:fine){.kium-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-2)}}
 .kium-card:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 /* 열린 카드 = 현재 위치 표지(top-stripe 2px) */
 .kium-card[aria-expanded="true"]{border-color:transparent;box-shadow:var(--shadow-2)}
@@ -573,7 +583,8 @@
   justify-content:center;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);
   background:#fff;color:var(--muted);padding:0;cursor:pointer;
   transition:background-color .3s var(--ease),color .3s var(--ease)}
-.kium-sheet-close:hover,.kium-sheet-close:focus-visible{background-color:var(--ink);color:#fff}
+.kium-sheet-close:focus-visible{background-color:var(--ink);color:#fff}
+@media (hover:hover) and (pointer:fine){.kium-sheet-close:hover{background-color:var(--ink);color:#fff}}
 .kium-sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   padding:0 0 calc(20px + env(safe-area-inset-bottom))}
 .kium-sheet .kium-detail{border:none;box-shadow:none;border-radius:0;margin-top:0;padding-top:8px}
@@ -600,9 +611,9 @@
    모션 저감 — transform 기반 모션 전부 제거(색·불투명도 전환만 유지)
    ========================================================================= */
 @media(prefers-reduced-motion:reduce){
-  .kium-btn-ghost:hover,.kium-btn-ghost:focus-visible,
-  .kium-elig:hover,.kium-elig:focus-within,
-  .kium-card:hover,.kium-card:focus-visible{transform:none}
+  .kium-btn-ghost:focus-visible,
+  .kium-elig:focus-within,
+  .kium-card:focus-visible{transform:none}
   .kium-panel,.kium-detail>*,.kium-grid.entering>.kium-card-wrap{animation:none}
   .kium-tab-ind{transition:width .3s var(--ease-out)}
   /* 시트는 열림/닫힘 상태 자체가 transform이므로 전환만 제거한다(상태는 유지) */
@@ -611,4 +622,7 @@
   /* 자동 스크롤은 코드에서 behavior:'auto'로 분기하므로 CSS 불필요(기존 stairRef 패턴과 동일) */
   .kium-card-chev{transition:none}
   .kium-panel-clip .kium-detail{transition:none}
+}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:reduce){
+  .kium-btn-ghost:hover,.kium-elig:hover,.kium-card:hover{transform:none}
 }

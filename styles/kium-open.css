@@ -50,22 +50,27 @@
   color:var(--p1);background:#fff;border:1px solid color-mix(in srgb,var(--p1) 30%,#fff);
   white-space:nowrap;
   transition:background .18s var(--ease),border-color .18s var(--ease),color .18s var(--ease)}
-.kium-cta-ses:hover,.kium-cta-ses:focus-visible{background:color-mix(in srgb,var(--p1) 7%,#fff);
+.kium-cta-ses:focus-visible{background:color-mix(in srgb,var(--p1) 7%,#fff);
   border-color:var(--p1)}
+@media (hover:hover) and (pointer:fine){.kium-cta-ses:hover{background:color-mix(in srgb,var(--p1) 7%,#fff);
+  border-color:var(--p1)}}
 /* 마감임박 — 지면에서 유일한 filled. 레드 계열은 이 상태 외에 쓰지 않는다 */
 .kium-cta-ses.is-urgent{background:#DC2626;border-color:#DC2626;color:#fff}
-.kium-cta-ses.is-urgent:hover,.kium-cta-ses.is-urgent:focus-visible{background:#B91C1C;border-color:#B91C1C}
+.kium-cta-ses.is-urgent:focus-visible{background:#B91C1C;border-color:#B91C1C}
+@media (hover:hover) and (pointer:fine){.kium-cta-ses.is-urgent:hover{background:#B91C1C;border-color:#B91C1C}}
 /* 마감 — 버튼 강도를 낮춘 텍스트 링크형. aria-disabled 대신 요소 자체를 교체한 결과 */
 .kium-cta-next{display:inline-flex;align-items:center;justify-content:center;gap:6px;
   min-height:44px;padding:0 12px;border-radius:999px;background:transparent;border:0;
   font-size:13.5px;font-weight:700;color:var(--muted);text-decoration:underline;
   text-underline-offset:3px;white-space:nowrap;transition:color .18s var(--ease)}
-.kium-cta-next:hover,.kium-cta-next:focus-visible{color:var(--ink)}
+.kium-cta-next:focus-visible{color:var(--ink)}
+@media (hover:hover) and (pointer:fine){.kium-cta-next:hover{color:var(--ink)}}
 /* 보조 CTA — 월 그룹 헤더·과정 상세 토글 */
 .kium-cta-quiet{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;
   border:0;background:transparent;font-size:13.5px;font-weight:700;color:var(--p1);
   border-radius:999px;white-space:nowrap;transition:background .18s var(--ease)}
-.kium-cta-quiet:hover,.kium-cta-quiet:focus-visible{background:color-mix(in srgb,var(--p1) 7%,#fff)}
+.kium-cta-quiet:focus-visible{background:color-mix(in srgb,var(--p1) 7%,#fff)}
+@media (hover:hover) and (pointer:fine){.kium-cta-quiet:hover{background:color-mix(in srgb,var(--p1) 7%,#fff)}}
 .kium-cta-quiet svg{transition:transform .2s var(--ease)}
 .kium-cta-quiet svg.is-up{transform:rotate(180deg)}
 
@@ -165,8 +170,8 @@
   padding:12px 0;margin:-12px 0;
   text-decoration:none;text-underline-offset:3px;
   transition:color .18s var(--ease)}
-.kium-srow-title.is-link:hover,
 .kium-srow-title.is-link:focus-visible{color:var(--p1);text-decoration:underline}
+@media (hover:hover) and (pointer:fine){.kium-srow-title.is-link:hover{color:var(--p1);text-decoration:underline}}
 .kium-srow-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
 .kium-srow-meta span{display:inline-flex;align-items:center;gap:5px}
 .kium-srow-meta .num{font-weight:800;color:var(--p1);font-variant-numeric:tabular-nums}
@@ -226,7 +231,8 @@
 .kium-pill-ses[data-tone="green"]{background:#DCFCE7;color:#166534}
 .kium-pill-ses[data-tone="red"]  {background:#FEE2E2;color:#B91C1C}
 .kium-pill-ses[data-tone="gray"] {background:#F3F4F6;color:#4B5563;opacity:.72}
-button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--shadow-1)}
+button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--shadow-1)}
+@media (hover:hover) and (pointer:fine){button.kium-pill-ses:hover{border-color:currentColor;box-shadow:var(--shadow-1)}}
 
 /* ── 상세 패널 회차 스트립 ────────────────────────────────────── */
 .kium-strip-wrap{margin-top:16px}
@@ -321,7 +327,8 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
 .kium-openlead-link{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;
   padding:0;font-size:14px;font-weight:800;color:var(--p1);text-decoration:underline;
   text-underline-offset:3px;transition:color .18s var(--ease)}
-.kium-openlead-link:hover,.kium-openlead-link:focus-visible{color:var(--ink)}
+.kium-openlead-link:focus-visible{color:var(--ink)}
+@media (hover:hover) and (pointer:fine){.kium-openlead-link:hover{color:var(--ink)}}
 /* 공백 문자는 줄바꿈 위치에 따라 사라진다 — 간격을 여백으로 고정한다 */
 .kium-openlead-link{margin-left:12px}
 @media(max-width:639px){
@@ -358,7 +365,8 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   border:1px solid var(--line);border-radius:10px;background:#fff;
   font-size:13px;font-weight:700;color:var(--ink);
   transition:border-color .18s var(--ease),background .18s var(--ease)}
-.kium-sact:hover,.kium-sact:focus-visible{border-color:var(--p1);background:var(--surface)}
+.kium-sact:focus-visible{border-color:var(--p1);background:var(--surface)}
+@media (hover:hover) and (pointer:fine){.kium-sact:hover{border-color:var(--p1);background:var(--surface)}}
 .kium-sact-st{display:inline-flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0}
 .kium-sact-lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kium-sact-st em{font-style:normal;font-size:11.5px;font-weight:700;color:var(--muted);
@@ -394,7 +402,8 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;
   background:var(--surface);font-size:13px;font-weight:700;color:var(--ink);
   transition:border-color .18s var(--ease),background .18s var(--ease)}
-.kium-schedbox-toggle:hover,.kium-schedbox-toggle:focus-visible{border-color:var(--p1)}
+.kium-schedbox-toggle:focus-visible{border-color:var(--p1)}
+@media (hover:hover) and (pointer:fine){.kium-schedbox-toggle:hover{border-color:var(--p1)}}
 .kium-schedbox-toggle svg{transition:transform .2s var(--ease)}
 .kium-schedbox-toggle .is-up{transform:rotate(180deg)}
 .kium-schedbox-body{padding:16px 18px;transition:opacity 120ms var(--ease)}
@@ -436,7 +445,8 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   padding:12px 0;margin:-12px 0;
   font-size:13.5px;font-weight:800;color:var(--p1);line-height:1.45;word-break:keep-all;
   text-decoration:none;text-underline-offset:3px;transition:color .18s var(--ease)}
-.kium-scard2-course:hover,.kium-scard2-course:focus-visible{color:var(--ink);text-decoration:underline}
+.kium-scard2-course:focus-visible{color:var(--ink);text-decoration:underline}
+@media (hover:hover) and (pointer:fine){.kium-scard2-course:hover{color:var(--ink);text-decoration:underline}}
 .kium-scard2-course.is-static{text-decoration:none;color:var(--ink)}
 @media(max-width:767px){
   .kium-ustrip{grid-auto-columns:82%;overscroll-behavior-x:contain;
@@ -458,7 +468,8 @@ button.kium-pill-ses:hover,button.kium-pill-ses:focus-visible{border-color:curre
   color:var(--p1);background:rgba(255,255,255,.94);
   border:1px solid color-mix(in srgb,var(--p1) 32%,#fff);box-shadow:var(--shadow-1);
   transition:background .18s var(--ease),border-color .18s var(--ease)}
-.kium-openflag:hover,.kium-openflag:focus-visible{background:#fff;border-color:var(--p1)}
+.kium-openflag:focus-visible{background:#fff;border-color:var(--p1)}
+@media (hover:hover) and (pointer:fine){.kium-openflag:hover{background:#fff;border-color:var(--p1)}}
 .kium-openflag svg{flex:none}
 
 /* 스트립 과정명 → 카드 이동 시 2초 하이라이트 */

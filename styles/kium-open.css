@@ -523,3 +523,32 @@ button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--sh
    기존 .kium-chip 규칙을 상속하고 테두리 스타일만 덮는다 — 신규 색 토큰 0. */
 .kium-chip-review{border-style:dashed}
 .kium-chip-review[aria-pressed="true"]{border-style:dashed}
+
+/* [MI-03] 모바일에서 요약 배너를 상단에 고정한다.
+   무엇을 신청 중인지는 폼을 채우는 내내 유효한 정보다 — 한 번 지나가면 사라지는 위치에 두지 않는다.
+   top = .nav(56px 폴백) + .kium-tabbar(54px) + 2px. /kium 에는 .subnav 가 없다.
+   z-index 는 .nav(70)·.kium-tabbar(40) 아래인 5로 둬 3단이 세로로 쌓이게 한다.
+   position:fixed 를 쓰지 않는다 — 섹션 밖에서도 떠다니게 된다. */
+@media(max-width:880px){
+  /* top 은 실측으로 확정했다: .kium-tabbar 가 72px에 붙고 높이가 55px이라 하단이 127px이다.
+     127 + 2 = 129 = calc(56 + 73). --nav-h 는 /kium 에서 미정의라 폴백 56px 이 쓰인다.
+     이보다 작으면 배너가 탭바 뒤로 들어간다(112px 로 뒀다가 15px 겹침을 계측에서 잡았다). */
+  .kium-cta-band .kium-apply-sum{position:sticky;top:calc(var(--nav-h,56px) + 73px);z-index:5;
+    flex-wrap:nowrap;margin:0 0 12px;padding:10px 14px;font-size:13.5px;
+    box-shadow:0 2px 10px rgba(20,20,26,.06)}
+  /* 과정명만 말줄임한다 — 회차 정보는 줄이지 않는다 */
+  .kium-cta-band .kium-apply-line{flex:1 1 auto;flex-wrap:nowrap;min-width:0;white-space:nowrap}
+  /* 과정명만 줄어들게 한다 — flex 기본 min-width:auto 면 축소되지 않아 회차 텍스트가 밀려 내려간다 */
+  .kium-cta-band .kium-apply-line b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* '상담으로 작성 중입니다'는 배너의 존재 자체가 이미 말하는 맥락이다.
+     44px 한 줄을 지키려면 무언가는 빠져야 하는데, 요구 조건이 '회차 정보는 줄이지 않는다'이므로
+     서술어를 접는다. 과정명·회차·[변경]은 그대로 남는다. */
+  .kium-cta-band .kium-apply-sum .t{display:none}
+  /* [변경] 링크의 min-height:44px 가 배너 높이를 66px로 밀어 올린다(44 + padding 20 + border 2).
+     '배너 44px 이하'와 '터치 타깃 44px'는 그대로는 양립하지 않는다 →
+     MO-04 의 상쇄 패턴을 쓴다: 시각 높이는 22px, padding 으로 확보한 히트 영역은 44px.
+     터치 타깃 요구는 그대로 충족되고 배너만 한 줄로 내려온다. */
+  .kium-cta-band .kium-apply-sum .chg{flex:none;white-space:nowrap;min-height:0;padding:11px 0;margin:-11px 0}
+  /* 마감 가드 문구가 있을 때만 2줄을 허용한다(요구 조건 5) */
+  .kium-cta-band .kium-apply-sum:has(.kium-apply-guard){flex-wrap:wrap}
+}

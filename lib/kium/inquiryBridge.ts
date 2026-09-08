@@ -42,7 +42,9 @@ export function requestKiumInquiry(titleMarketing: string) {
       detail: { text: kiumPrefillText(titleMarketing), strip: PREFILL_STRIP },
     })
   );
-  const el = document.getElementById('inq');
+  /* [MI-01] 폼 컨테이너를 직접 가리킨다 — #inq로 가면 모바일에서 소개 블록만 화면에 찬다.
+     결과 화면에서는 #inq-form이 렌더되지 않으므로 #inq 폴백이 반드시 필요하다. */
+  const el = document.getElementById('inq-form') ?? document.getElementById('inq');
   if (!el) return;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });

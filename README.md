@@ -365,6 +365,54 @@ playwright.config.ts  # 회귀 테스트 설정(chromium 고정 · dev 포트 30
 - **`prefers-reduced-motion`·IO 미지원**: 되감기를 건너뛰므로 최종값이 처음부터 표시된다(종전 동작과 동일한 결과, 경로만 단순해졌다).
 - **검증**: `npm run build` 경고·에러 0 · 빌드 산출 `/ax-ai` HTML의 `.num` 5개가 실제 수치(5/8/5/8/5)로 렌더되고 `class="num">0<` **0건**.
 
+### 59) /kium 모바일 상담 진입 — 앵커·순서·요약 배너·키보드 가시성 (MI-01~MI-05)
+> 기준: [`ref/kium/spec/KEESS_kium_모바일_상담진입_기술명세서_v1.0_260908.md`](ref/kium/spec/KEESS_kium_모바일_상담진입_기술명세서_v1.0_260908.md) — 전략 [`…UX전략_v1.0`](ref/kium/strategy/KEESS_kium_모바일_상담진입_UX전략_v1.0_260908.md). 근거: 실기기 스크린샷 2매(현재/제안).
+> **"키보드를 없애 달라"가 아니었다** — 무엇을 신청 중이고 지금 어느 항목을 입력하는지 보이게 해 달라는 요구다. 자동 포커스는 유지한다.
+
+#### 원인 5건 (추측이 아니라 코드에서 확인)
+
+| # | 원인 | 위치 |
+|:--:|---|---|
+| 1 | 스크롤 앵커 `#inq`의 첫 자식이 **소개 블록**(`.inq-side` 340px)이라 모바일에서 입력 필드가 화면 밖으로 밀린다 | `openBridge.ts:112` · `home.css:210` |
+| 2 | 요약 배너가 앵커보다 **위**에 있어 스크롤하면 화면 밖으로 나간다 | `page.tsx:143` |
+| 3 | `focus({preventScroll:true})`라 키보드가 하단 45%를 덮어도 **보정이 일어나지 않는다** | `openBridge.ts:116` |
+| 4 | `scroll-margin-top` 선언이 **전 CSS 0건** — 앵커 상단이 고정 헤더에 가린다 | 전 CSS |
+| 5 | 과정 패널 CTA 경로는 selection을 발행하지 않아 **배너 자체가 없다** | `KiumCoursePanel.tsx:229` |
+
+#### 조치
+
+- **MI-01 앵커 교체** — `#inq`(섹션) → `#inq-form`(폼 컨테이너). **공유 폼 변경은 `id` 속성 1개가 전부**다(diff 2줄: id + 한 줄 주석). 결과 화면(`status !== 'idle'`)에서는 이 div가 렌더되지 않으므로 **`#inq` 폴백을 반드시 둔다.** `scroll-margin-top`은 실측으로 확정했다 — 탭바 하단 127 + 배너 40 + 여백 24 = **191px**(`calc(var(--nav-h,56px) + 135px)`).
+- **MI-02 모바일 순서 재배치** — `order`로만 바꿔 **DOM 순서는 그대로**다(탭 순서·스크린리더 읽기 순서 유지). 소개 블록은 **삭제하지 않고 폼 아래로** 보낸다 — 신뢰 요소를 잃지 않는다. `880px`는 `.inq-grid`가 1열이 되는 **기존 값**(`home.css:209`)이고, `.kium-cta-band` 스코프에 가둬 **홈(/)은 무변경**이다.
+- **MI-03 요약 배너 sticky** — 무엇을 신청 중인지는 폼을 채우는 내내 유효한 정보라 **한 번 지나가면 사라지는 위치에 두지 않는다.** `top`은 실측 확정 — 탭바가 72px에 붙고 높이가 55px이라 하단이 127px, 여기에 2px을 더해 **129px**(`calc(var(--nav-h,56px) + 73px)`). 처음 112px로 뒀다가 **15px 겹침을 계측에서 잡았다.** `z-index:5`로 `.nav`(70)·`.kium-tabbar`(40) 아래에 둬 3단이 세로로 쌓인다.
+- **MI-04 키보드 가시성 보정** — `visualViewport`로 키보드가 덮고 남은 **실제 가시 영역**을 읽는다. 호출 시점은 포커스 직후가 아니라 **키보드가 실제로 올라온 뒤**(`resize` 1회 대기 + 700ms 폴백)다. `preventScroll:true`는 그대로 둔다 — 두 장치는 역할이 다르다: `preventScroll`은 *스크롤 중 간섭 차단*, `ensureVisibleWithKeyboard`는 *스크롤이 끝난 뒤 키보드까지 감안한 최종 보정*이다. `resize` 리스너는 반드시 해제하고(남기면 이후 모든 키보드 개폐에 스크롤이 끼어든다) `done` 플래그로 1회만 실행한다. `visualViewport` 미지원이면 **아무것도 하지 않는다** — 잘못된 보정이 무보정보다 나쁘다.
+- **MI-05 과정 패널 CTA에도 배너** — 브리지가 아니라 **호출부**에서 selection을 발행한다. `requestKiumInquiry`는 `inquiryBridge`, `KIUM_OPEN_SELECT_EVENT`는 `openBridge`에 있어 브리지끼리 엮으면 **순환 import**가 된다.
+
+#### 명세가 예상하지 못한 지점 2건
+
+- **`/kium`에는 `.subnav`가 없다** — 명세는 sticky 2단을 `.nav`+`.subnav`로 보고 `64px`(subnav 52 + 12)를 제시했으나, `.subnav`는 `hero-shell` 계열 페이지 전용이고 `/kium`의 두 번째 단은 **`.kium-tabbar`**(top 72 · 높이 55)다. `topInset()`의 셀렉터 목록에 `.kium-tabbar`를 넣고 `top`/`scroll-margin-top`을 실측으로 다시 잡았다. `--nav-h`도 `.hero-shell` 스코프 변수라 `/kium`에서는 폴백 `56px`이 쓰인다.
+- **"배너 44px 이하"와 "[변경] 링크 min-height:44px 유지"는 그대로는 양립하지 않는다** — 44px 타깃이 10px padding 안에 있으면 배너는 최소 66px이다. MO-04의 상쇄 패턴(`padding:11px 0;margin:-11px 0`)을 써서 **터치 타깃 44px는 그대로 두고 시각 높이만 22px**로 내렸다. 그리고 `'상담으로 작성 중입니다'`(서술어)를 모바일에서 접었다 — 요구 조건이 *"회차 정보는 줄이지 않는다"*이므로 줄일 수 있는 것은 이것뿐이다. 과정명·회차·[변경]은 그대로 남는다.
+
+#### 검증 (320 / 390 / 430px)
+
+```
+320px  f-company top 389 bottom 440 · vv 0~800 → 가시 OK · 배너 44px · 겹침 0 · 가로넘침 0px
+390px  f-company top 367 bottom 419 · vv 0~800 → 가시 OK · 배너 44px · 겹침 0 · 가로넘침 0px
+430px  f-company top 367 bottom 419 · vv 0~800 → 가시 OK · 배너 44px · 겹침 0 · 가로넘침 0px
+V2  키보드 등장 후 f-company bottom 419~440 < vv 하단 464 → 전 뷰포트 OK
+V5  nav bottom 73 · tabbar 72~127 · 배너 sticky top 129 → 배너 겹침 0
+V7  visualViewport resize 등록 1 / 해제 1 → 잔존 0건
+S4  폼 아래로 600px 스크롤 후에도 배너 top 129 고정
+S7  마감 경유 — 가드 문구가 붙어 106px 2줄(요구 조건 5의 예외 그대로)
+S10 reduced-motion — 필드 가시화까지 320ms(즉시 이동)
+R1  홈(/) 390px — inq-side(order:0) → form(order:0) 무변경
+R2  데스크톱 1280px — grid 455.9px 656.1px · 좌→우 inq-side → form · 배너 static
+R5  경로를 바꿔 눌러도 프리필 헤드 1개 유지
+```
+
+`verify-btype.mjs` **53/53** · `verify-btype2.mjs` **177/177** · 타 페이지 5경로 넘침 0 · tsc 0 · build 경고 0 · MO-01~MO-08 전건 유지.
+
+**후속 항목** — `scroll-margin-top` 부재는 전 CSS 0건이었다. 본 건은 `#inq-form` 앵커 1개만 처리했고, 나머지 해시 앵커(`#gov`·`#download`·`#courses` 등)는 별건이다.
+
 ### 58) 모바일 대응 고도화 — 입력 16px · 터치 타깃 44px · hover 가드 · 스크롤 잠금 (MO-01~MO-08)
 > 기준: [`ref/kium/spec/KEESS_모바일대응_고도화_기술명세서_v1.0_260907.md`](ref/kium/spec/KEESS_모바일대응_고도화_기술명세서_v1.0_260907.md) (**본 건에서 v1.1로 개정**) — 전략 [`…고도화전략_v1.0`](ref/kium/strategy/KEESS_모바일대응_고도화전략_v1.0_260907.md).
 > **3커밋 분리**: ① MO-01·04~08(CSS) → ② MO-03(스크롤 잠금) → ③ MO-02(hover 가드 105건).

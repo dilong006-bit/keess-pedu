@@ -602,6 +602,19 @@
    ========================================================================= */
 .kium-cta-band{background:var(--surface);padding-top:64px}
 .kium-cta-band .inq{padding-top:0}
+/* [MI-01] 앵커 보정 — .nav(fixed 56px) + .kium-tabbar(54px) + 여백.
+   /kium 에는 .subnav 가 없다(hero-shell 계열 페이지 전용)이므로 tabbar 기준으로 잡는다.
+   실측: 탭바 하단 127 + sticky 배너 40 + 배너 여백 12 + 여백 12 = 191 = calc(56 + 135).
+   --nav-h 는 .hero-shell 스코프에서만 정의되므로 이 페이지에서는 폴백 56px 이 쓰인다. */
+.kium-cta-band #inq-form{scroll-margin-top:calc(var(--nav-h,56px) + 135px)}
+/* [MI-02] 상담 진입 시 첫 화면에 입력 필드가 오도록 소개 블록을 폼 아래로 보낸다.
+   삭제가 아니라 순서 변경이며, DOM 순서는 그대로라 탭 순서·스크린리더 읽기 순서가 유지된다.
+   880px 는 .inq-grid 가 1열이 되는 기존 값(home.css:209)과 같은 값이다 — 신규 BP 아님.
+   .kium-cta-band 스코프에 가둬 홈(/)의 #inq 는 무변경이다. */
+@media(max-width:880px){
+  .kium-cta-band .inq-grid>.form{order:1}
+  .kium-cta-band .inq-grid>.inq-side{order:2}
+}
 
 /* =========================================================================
    Nav 이벤트 칩은 전 페이지 상시 노출 → styles/components.css에 위치

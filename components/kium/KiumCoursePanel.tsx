@@ -5,6 +5,7 @@ import SessionStrip from './SessionCard';
 import { IconArrowRight } from './kiumIcons';
 import { KIUM_CATEGORY_META, type KiumCourse } from '@/lib/kium/data';
 import { requestKiumInquiry } from '@/lib/kium/inquiryBridge';
+import { KIUM_OPEN_SELECT_EVENT, type OpenSelection } from '@/lib/kium/openBridge';
 import { getSessionsOfCourse, isOpenCourse, type KiumSession } from '@/lib/kium/sessions';
 import { fmtPrice, KIUM_PRICE_NOTE } from '@/lib/kium/pricing';
 
@@ -226,7 +227,18 @@ export default function KiumCoursePanel({
           <button
             type="button"
             className="btn btn-ink"
-            onClick={() => requestKiumInquiry(course.titleMarketing)}
+            /* [MI-05] 프리필과 함께 selection 도 발행해 요약 배너가 뜨게 한다.
+               브리지가 아니라 호출부에서 하는 이유: requestKiumInquiry 는 inquiryBridge,
+               KIUM_OPEN_SELECT_EVENT 는 openBridge 에 있어 브리지끼리 엮으면 순환 import 가 된다.
+               KiumApplySummary 의 경로 B 분기가 그대로 처리하므로 배너 컴포넌트는 무변경. */
+            onClick={() => {
+              requestKiumInquiry(course.titleMarketing);
+              window.dispatchEvent(
+                new CustomEvent(KIUM_OPEN_SELECT_EVENT, {
+                  detail: { route: 'B', courseId: course.id } satisfies OpenSelection,
+                })
+              );
+            }}
           >
             {'이 과정으로 신청\u00A0문의'}
           </button>

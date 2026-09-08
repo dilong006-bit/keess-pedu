@@ -425,7 +425,8 @@ export default function HomeInquiry({
             </div>
           </div>
 
-          <div className="form r">
+          {/* id="inq-form" — /kium 상담 진입 앵커(MI-01). 타 페이지는 쓰지 않는다 */}
+          <div className="form r" id="inq-form">
             {status === 'idle' || submitting ? (
               <div id="form-body">
                 {/* 1·2 회사·기관명* / 담당자명* */}

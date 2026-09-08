@@ -106,17 +106,77 @@ export function dispatchPrefill(text: string, selection: OpenSelection) {
   window.dispatchEvent(new CustomEvent(KIUM_OPEN_SELECT_EVENT, { detail: selection }));
 }
 
-/** 상담 섹션으로 이동 + 첫 빈 필수 필드로 포커스 */
+/**
+ * sticky로 덮이는 상단 높이. 하드코딩하지 않고 실측한다.
+ *
+ * /kium의 sticky 2단은 `.nav`(fixed) + `.kium-tabbar`(sticky)다 —
+ * `.subnav`는 이 페이지에 렌더되지 않는다(hero-shell 계열 페이지 전용).
+ * `.kium-apply-sum`은 모바일에서만 sticky이므로 position 검사로 자동 제외된다.
+ */
+function topInset(): number {
+  const q = (s: string) => document.querySelector<HTMLElement>(s);
+  const h = (el: HTMLElement | null) =>
+    el && getComputedStyle(el).position !== 'static' ? el.getBoundingClientRect().height : 0;
+  return h(q('.nav')) + h(q('.subnav')) + h(q('.kium-tabbar')) + h(q('.kium-apply-sum'));
+}
+
+/**
+ * 키보드가 올라온 뒤 포커스 대상이 가려졌는지 확인하고 보정한다.
+ *
+ * 브라우저 기본 보정은 두 가지를 모른다.
+ *   ① focus({preventScroll:true}) 가 걸려 있으면 아예 동작하지 않는다
+ *   ② sticky 요소(nav · tabbar · 요약 배너)가 덮는 영역을 계산하지 않는다
+ * visualViewport 는 키보드가 덮고 남은 실제 가시 영역을 알려 준다.
+ */
+function ensureVisibleWithKeyboard(el: HTMLElement, inset: number) {
+  const vv = window.visualViewport;
+  if (!vv) return; // 미지원 브라우저는 기본 동작에 맡긴다 — 잘못된 보정이 무보정보다 나쁘다
+  const pad = 12;
+  const r = el.getBoundingClientRect();
+  const top = vv.offsetTop + inset + pad;
+  const bottom = vv.offsetTop + vv.height - pad;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const behavior: ScrollBehavior = reduce ? 'auto' : 'smooth';
+  if (r.bottom > bottom) window.scrollBy({ top: r.bottom - bottom, behavior });
+  else if (r.top < top) window.scrollBy({ top: r.top - top, behavior });
+}
+
+/**
+ * 상담 섹션으로 이동 + 첫 빈 필수 필드로 포커스.
+ *
+ * [MI-01] 앵커는 #inq(섹션)가 아니라 #inq-form(폼 컨테이너)이다.
+ *   모바일에서 #inq는 첫 자식이 .inq-side(소개 340px)라 입력 필드가 화면 밖으로 밀린다.
+ *   결과 화면에서는 #inq-form이 없으므로 #inq로 폴백한다.
+ *
+ * [MI-04] preventScroll:true 는 그대로 둔다 —
+ *   스무스 스크롤이 진행 중일 때 브라우저 기본 포커스 스크롤이 끼어들면 화면이 두 번 튄다.
+ *   대신 키보드가 실제로 올라온 뒤(visualViewport resize) 가시성을 직접 보정한다.
+ *   두 장치는 역할이 다르다: preventScroll 은 '스크롤 중 간섭 차단',
+ *   ensureVisibleWithKeyboard 는 '스크롤이 끝난 뒤 키보드까지 감안한 최종 보정'이다.
+ */
 export function scrollToInquiry() {
-  const el = document.getElementById('inq');
+  const el = document.getElementById('inq-form') ?? document.getElementById('inq');
   if (!el) return;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   // 스크롤 후 포커스 — preventScroll로 화면을 두 번 흔들지 않는다
-  window.setTimeout(
-    () => document.getElementById('f-company')?.focus({ preventScroll: true }),
-    reduce ? 0 : 480
-  );
+  window.setTimeout(() => {
+    const field = document.getElementById('f-company');
+    field?.focus({ preventScroll: true });
+    if (!field) return;
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      vv.removeEventListener('resize', run); // 남기면 이후 모든 키보드 개폐에 스크롤이 끼어든다
+      window.setTimeout(() => ensureVisibleWithKeyboard(field, topInset()), 60);
+    };
+    vv.addEventListener('resize', run, { once: true });
+    window.setTimeout(run, 700); // 키보드가 뜨지 않는 환경(데스크톱·외장 키보드) 폴백
+  }, reduce ? 0 : 480);
 }
 
 /** URL 쿼리 반영 — 새로고침·링크 공유에도 프리필이 유지된다 */

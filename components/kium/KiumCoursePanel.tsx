@@ -33,6 +33,7 @@ export default function KiumCoursePanel({
   now = null,
   onConsultSession,
   onConsultCourse,
+  onBeforeConsult,
 }: {
   course: KiumCourse;
   titleId: string;
@@ -40,6 +41,13 @@ export default function KiumCoursePanel({
   now?: Date | null;
   onConsultSession?: (s: KiumSession) => void;
   onConsultCourse?: (c: KiumCourse) => void;
+  /**
+   * [MI-06] 상담 CTA 를 누르기 **직전**에 실행할 정리 작업. 시트 경로 전용이다 —
+   * 모바일 바텀시트가 열린 채로 상담 폼으로 가면 body 가 position:fixed 라
+   * 스크롤도 포커스도 배경에 먹지 않아 키보드만 올라온다.
+   * 미지정 시 현행 동작 그대로다(데스크톱 인라인 패널은 넘기지 않는다).
+   */
+  onBeforeConsult?: () => void;
 }) {
   const isOpenVar = variant === 'open';
   const totalHours = course.modules.reduce((sum, m) => sum + m.hours, 0);
@@ -70,7 +78,10 @@ export default function KiumCoursePanel({
           course={course}
           sessions={getSessionsOfCourse(course.id)}
           now={now}
-          onConsult={(s) => onConsultSession?.(s)}
+          onConsult={(s) => {
+            onBeforeConsult?.();
+            onConsultSession?.(s);
+          }}
         />
       )}
 
@@ -202,7 +213,10 @@ export default function KiumCoursePanel({
           course={course}
           sessions={getSessionsOfCourse(course.id)}
           now={now}
-          onConsult={(s) => onConsultSession?.(s)}
+          onConsult={(s) => {
+            onBeforeConsult?.();
+            onConsultSession?.(s);
+          }}
           heading="공개교육 일정"
         />
       )}
@@ -217,7 +231,10 @@ export default function KiumCoursePanel({
           <button
             type="button"
             className="kium-cta-ses"
-            onClick={() => onConsultCourse(course)}
+            onClick={() => {
+              onBeforeConsult?.();
+              onConsultCourse(course);
+            }}
             aria-label={`${course.titleMarketing} 이 과정으로 상담하기`}
           >
             <span>이 과정으로 상담하기</span>
@@ -232,6 +249,7 @@ export default function KiumCoursePanel({
                KIUM_OPEN_SELECT_EVENT 는 openBridge 에 있어 브리지끼리 엮으면 순환 import 가 된다.
                KiumApplySummary 의 경로 B 분기가 그대로 처리하므로 배너 컴포넌트는 무변경. */
             onClick={() => {
+              onBeforeConsult?.();
               requestKiumInquiry(course.titleMarketing);
               window.dispatchEvent(
                 new CustomEvent(KIUM_OPEN_SELECT_EVENT, {

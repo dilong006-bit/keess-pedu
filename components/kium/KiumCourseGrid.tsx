@@ -363,6 +363,11 @@ export default function KiumCourseGrid({
                   now={now}
                   onConsultSession={onConsultSession}
                   onConsultCourse={onConsultCourse}
+                  /* [MI-06] 시트 경로에만 준다 — 상담으로 가기 전에 시트를 먼저 닫는다.
+                     인라인 패널(데스크톱)에는 넘기지 않아 그쪽 동작은 무변경이다.
+                     openBridge 는 시트 상태를 모르므로, 시트를 소유한 이 컴포넌트가
+                     자기 CTA 를 감싼다. */
+                  onBeforeConsult={closeSheet}
                 />
               )}
             </div>

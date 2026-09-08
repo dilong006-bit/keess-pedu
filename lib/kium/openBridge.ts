@@ -154,29 +154,67 @@ function ensureVisibleWithKeyboard(el: HTMLElement, inset: number) {
  *   두 장치는 역할이 다르다: preventScroll 은 '스크롤 중 간섭 차단',
  *   ensureVisibleWithKeyboard 는 '스크롤이 끝난 뒤 키보드까지 감안한 최종 보정'이다.
  */
-export function scrollToInquiry() {
-  const el = document.getElementById('inq-form') ?? document.getElementById('inq');
-  if (!el) return;
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-  // 스크롤 후 포커스 — preventScroll로 화면을 두 번 흔들지 않는다
-  window.setTimeout(() => {
-    const field = document.getElementById('f-company');
-    field?.focus({ preventScroll: true });
-    if (!field) return;
+/**
+ * [MI-07] body 스크롤 잠금이 풀린 뒤 실행한다.
+ *
+ * 시트·모달이 열려 있는 동안 body 는 position:fixed 다(useModal · MO-03).
+ * 이 상태에서는 문서 스크롤 높이가 뷰포트로 붕괴해 scrollIntoView·scrollBy 가
+ * 모두 무효이고, 배경 요소에 포커스가 걸리면 화면은 그대로인 채 키보드만 올라온다.
+ * 실제로 모바일 드로어에서 상담 CTA 를 누르면 정확히 그 증상이 났다.
+ *
+ * 시점을 추측하지 않고 body.style.position 을 직접 관측한다 —
+ * 고정 지연(setTimeout)은 기기·React 스케줄링에 따라 달라지는 값을 찍는 것이다.
+ *
+ * ★ 타임아웃(24프레임 · 약 400ms) 시 강행하지 않는다.
+ *   잠긴 상태에서 밀어붙이면 배경 포커스가 걸려 고치려던 버그를 그대로 재현한다.
+ *   프리필과 요약 배너는 이미 반영돼 있으므로, 사용자가 시트를 닫으면 정상 상태를 만난다.
+ *   아무 일도 일어나지 않는 편이 낫다.
+ *
+ * 잠기지 않은 경로(데스크톱 인라인 패널)에서는 첫 호출에 그대로 실행된다 — 무변경.
+ */
+function whenUnlocked(fn: () => void, maxFrames = 24) {
+  const locked = () => document.body.style.position === 'fixed';
+  if (!locked()) {
+    fn();
+    return;
+  }
+  let left = maxFrames;
+  const step = () => {
+    if (!locked()) {
+      fn();
+      return;
+    }
+    if (--left <= 0) return;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
-    const vv = window.visualViewport;
-    if (!vv) return;
-    let done = false;
-    const run = () => {
-      if (done) return;
-      done = true;
-      vv.removeEventListener('resize', run); // 남기면 이후 모든 키보드 개폐에 스크롤이 끼어든다
-      window.setTimeout(() => ensureVisibleWithKeyboard(field, topInset()), 60);
-    };
-    vv.addEventListener('resize', run, { once: true });
-    window.setTimeout(run, 700); // 키보드가 뜨지 않는 환경(데스크톱·외장 키보드) 폴백
-  }, reduce ? 0 : 480);
+export function scrollToInquiry() {
+  whenUnlocked(() => {
+    const el = document.getElementById('inq-form') ?? document.getElementById('inq');
+    if (!el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    // 스크롤 후 포커스 — preventScroll로 화면을 두 번 흔들지 않는다
+    window.setTimeout(() => {
+      const field = document.getElementById('f-company');
+      field?.focus({ preventScroll: true });
+      if (!field) return;
+
+      const vv = window.visualViewport;
+      if (!vv) return;
+      let done = false;
+      const run = () => {
+        if (done) return;
+        done = true;
+        vv.removeEventListener('resize', run); // 남기면 이후 모든 키보드 개폐에 스크롤이 끼어든다
+        window.setTimeout(() => ensureVisibleWithKeyboard(field, topInset()), 60);
+      };
+      vv.addEventListener('resize', run, { once: true });
+      window.setTimeout(run, 700); // 키보드가 뜨지 않는 환경(데스크톱·외장 키보드) 폴백
+    }, reduce ? 0 : 480);
+  });
 }
 
 /** URL 쿼리 반영 — 새로고침·링크 공유에도 프리필이 유지된다 */

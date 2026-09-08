@@ -34,6 +34,37 @@ export function kiumPrefillText(titleMarketing: string) {
 /** 제출 페이로드 태깅 값 — UI에는 노출하지 않는다 */
 export const KIUM_LEAD_SOURCE = KIUM_CONTENT.leadSource;
 
+/**
+ * [MI-07] body 스크롤 잠금이 풀린 뒤 실행한다.
+ *
+ * 시트·모달이 열려 있는 동안 body 는 position:fixed 라(useModal · MO-03)
+ * 문서 스크롤 높이가 뷰포트로 붕괴해 scrollIntoView 가 무효다.
+ * 시점을 추측하지 않고 body.style.position 을 직접 관측한다.
+ * 타임아웃(24프레임 · 약 400ms) 시 강행하지 않는다 —
+ * 잠긴 상태에서 밀어붙이면 배경에 스크롤·포커스가 걸려 고치려던 증상을 재현한다.
+ *
+ * ※ openBridge 에 같은 유틸이 있지만 공유하지 않는다.
+ *   두 브리지는 openBridge → inquiryBridge 단방향 import 규약이라(파일 상단 주석)
+ *   반대로 끌어오면 순환 import 가 된다. 파일 내부 유틸로 각자 둔다.
+ */
+function whenUnlocked(fn: () => void, maxFrames = 24) {
+  const locked = () => document.body.style.position === 'fixed';
+  if (!locked()) {
+    fn();
+    return;
+  }
+  let left = maxFrames;
+  const step = () => {
+    if (!locked()) {
+      fn();
+      return;
+    }
+    if (--left <= 0) return;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 /** 문의 내용 프리필 요청 + 폼으로 이동 */
 export function requestKiumInquiry(titleMarketing: string) {
   window.dispatchEvent(
@@ -42,10 +73,12 @@ export function requestKiumInquiry(titleMarketing: string) {
       detail: { text: kiumPrefillText(titleMarketing), strip: PREFILL_STRIP },
     })
   );
-  /* [MI-01] 폼 컨테이너를 직접 가리킨다 — #inq로 가면 모바일에서 소개 블록만 화면에 찬다.
-     결과 화면에서는 #inq-form이 렌더되지 않으므로 #inq 폴백이 반드시 필요하다. */
-  const el = document.getElementById('inq-form') ?? document.getElementById('inq');
-  if (!el) return;
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  whenUnlocked(() => {
+    /* [MI-01] 폼 컨테이너를 직접 가리킨다 — #inq로 가면 모바일에서 소개 블록만 화면에 찬다.
+       결과 화면에서는 #inq-form이 렌더되지 않으므로 #inq 폴백이 반드시 필요하다. */
+    const el = document.getElementById('inq-form') ?? document.getElementById('inq');
+    if (!el) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  });
 }

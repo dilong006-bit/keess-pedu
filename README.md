@@ -365,6 +365,68 @@ playwright.config.ts  # 회귀 테스트 설정(chromium 고정 · dev 포트 30
 - **`prefers-reduced-motion`·IO 미지원**: 되감기를 건너뛰므로 최종값이 처음부터 표시된다(종전 동작과 동일한 결과, 경로만 단순해졌다).
 - **검증**: `npm run build` 경고·에러 0 · 빌드 산출 `/ax-ai` HTML의 `.num` 5개가 실제 수치(5/8/5/8/5)로 렌더되고 `class="num">0<` **0건**.
 
+### 60) /kium 드로어 상담 진입 — 시트가 닫히지 않던 결함 (MI-06~MI-08)
+> 기준: [`ref/kium/spec/KEESS_kium_드로어_상담진입_기술명세서_v1.0_260908.md`](ref/kium/spec/KEESS_kium_드로어_상담진입_기술명세서_v1.0_260908.md) — 전략 [`…UX전략_v1.0`](ref/kium/strategy/KEESS_kium_드로어_상담진입_UX전략_v1.0_260908.md). 근거: 화면 녹화 33프레임(16.5초) 분석 · 재현율 100%.
+> **증상** — 모바일에서 과정 상세 드로어가 열린 채 상담 CTA를 탭하면 **시트가 닫히지 않고 페이지도 이동하지 않으며 키보드만 올라온다.**
+
+#### 실패 연쇄 6단계 (추정이 아니라 코드 확인)
+
+| # | 단계 |
+|:--:|---|
+| ① | 시트 열림 → `useModal`이 `body`를 `position:fixed`로 잠금 (MO-03 · `useModal.ts:35~42`) |
+| ② | CTA 탭 → `consultSession()` → `dispatchPrefill` + `scrollToInquiry()` |
+| ③ | `scrollIntoView` **무효** — `body`가 `fixed`면 문서 스크롤 높이가 뷰포트로 붕괴해 스크롤할 공간이 없다 |
+| ④ | MI-04의 `visualViewport` 보정(`scrollBy`)도 **같은 이유로 무효** |
+| ⑤ | 480ms 뒤 `f-company.focus()` → **시트 뒤 입력에 포커스** → 키보드 등장 |
+| ⑥ | **★ 근본 원인: 시트를 닫는 코드가 없다** — `consultSession`·`consultCourse`·`consultMonth`·`consultOpenRequest` 4개 진입점 전부 `scrollToInquiry()`를 부르지만 시트를 닫지 않는다. `openBridge`는 시트 상태를 모르고, 시트 상태는 `KiumCourseGrid`의 `openId`에만 있다 |
+
+**MO-03의 잠금은 이 결함을 표면으로 끌어올렸을 뿐 원인이 아니다.** 잠금이 없었더라도 시트가 덮은 채로 배경이 스크롤되어 더 혼란스러웠을 것이다.
+
+#### ★ 닫기만 추가하면 해결되지 않는다
+
+`useModal` cleanup이 잠금을 풀면서 `window.scrollTo(0, y)`로 **스크롤 위치를 되돌린다**(`:88~95`).
+
+```
+closeSheet() → scrollToInquiry() → (React 커밋) → scrollTo(0, y) 복원
+               폼으로 스크롤          스크롤이 원위치로 되돌아감
+```
+
+증상만 *"키보드만 뜸"* → *"잠깐 움직였다가 되돌아옴"* 으로 바뀐다. **닫기와 순서 보장이 함께 필요하다.**
+
+#### 조치
+
+- **MI-06 시트 안 CTA가 시트를 먼저 닫는다** — `KiumCoursePanel`에 `onBeforeConsult` **옵션 prop**을 신설하고 상담 CTA 3종(회차 행 「상담하기」 · 「이 과정으로 상담하기」 · 「상담 신청」) 전부에서 기존 핸들러 **직전**에 호출한다. `KiumCourseGrid`의 **시트 렌더에만** `closeSheet`를 넘긴다 — 인라인 패널(데스크톱)에는 넘기지 않아 그쪽은 무변경이다. **`openBridge`에 시트 지식을 넣지 않았다** — 브리지가 시트를 알기 시작하면 구독자 관리·다중 인스턴스 문제가 따라온다. 시트를 소유한 컴포넌트가 자기 CTA를 감싸는 편이 한 줄로 끝난다.
+- **MI-07 잠금 해제 게이트** — `whenUnlocked()`로 `scrollToInquiry()` **본문 전체**(앵커 조회 → 포커스 → `visualViewport` 보정)를 감쌌다. **시점을 추측하지 않고 `body.style.position`을 직접 관측한다** — 고정 지연(`setTimeout 300`)은 기기·React 스케줄링에 따라 달라지는 값을 찍는 것이다. `requestAnimationFrame`만 쓰고 폴링은 없다.
+  **★ 타임아웃(24프레임 · 약 400ms) 시 강행하지 않는다.** 잠긴 상태에서 밀어붙이면 배경 포커스가 걸려 **고치려던 버그를 그대로 재현**한다. 프리필과 요약 배너는 이미 반영돼 있으므로 사용자가 시트를 닫으면 정상 상태를 만난다 — 아무 일도 일어나지 않는 편이 낫다.
+- **MI-08 모달 열림 중 배경 포커스 금지** — 요구사항·검증 항목으로 명시했다. `useModal`의 포커스 트랩은 **`Tab` 키만 막는다**(`:58~73`) — 프로그램적 `.focus()`는 막지 못하므로 **호출부의 책임**이다. `aria-modal="true"` 다이얼로그가 열린 동안 배경 요소에 포커스가 가면 스크린리더 사용자는 자기가 어디 있는지 알 수 없게 된다. 시각 사용자에게는 "키보드만 뜸", 보조기술 사용자에게는 더 심각한 형태로 나타나는 **같은 결함**이다.
+
+#### 명세가 놓친 지점 1건
+
+**MI-05 경로(위탁 과정 「상담 신청」)는 `scrollToInquiry`를 거치지 않는다.** 이 CTA는 `requestKiumInquiry`(`inquiryBridge`)가 **직접 스크롤**하므로 `openBridge`의 게이트가 걸리지 않았다 — 첫 검증에서 S3만 실패했다(`f-company top 8660`). 명세 §2-2 표가 이 CTA를 대상 3종에 포함했으므로, `inquiryBridge`에도 **같은 게이트를 파일 내부 유틸로** 뒀다. 두 브리지는 `openBridge → inquiryBridge` **단방향 import 규약**이라 공유할 수 없고, 반대로 끌어오면 순환 import가 된다. 중복 사유를 주석에 남겼다.
+
+#### 검증 (390px)
+
+```
+S1 회차 「상담하기」      V1 잠금해제 71~84ms · 시트 닫힘 · scrollY 5316→9731 · activeElement f-company
+S2 「이 과정으로 상담하기」 V1 78ms · 시트 닫힘 · 배너 "업무효율화: Agent 과정 · 일정 협의 희망"
+S3 「상담 신청」(위탁)     V1 61ms · 시트 닫힘 · f-company top 311 · 배너 "신입사원 On-Syncing 온보딩 과정 · 일정 협의 희망"
+S6 시트 깊이 스크롤 후     V1 50ms · 동일 동작 (스크롤 위치 무관)
+S8 마감 회차              V1 62ms · 경로 B + 가드 문구 + 시트 닫힘
+S12 reduced-motion        V1 107ms · 즉시 이동
+S7 CTA 없이 닫기          5352 → 5352 복원 (MO-03 유지)
+S9 데스크톱 인라인 패널    패널 1→1 유지 · 시트 없음 · scrollY 5547 · 무변경
+S10 시트 밖 스트립 CTA    scrollY 0→7147 · 무변경
+V4 시트 열린 동안 activeElement 항상 시트 내부 (전 시나리오 true)
+V5 키보드 후 f-company bottom 363~387 < vv 하단 464
+V6 visualViewport resize 잔존 0건    V7 requestAnimationFrame 잔존 0건
+R4 Modal(ISMS)·ReportModal·PrivacyModal 10325 → 10325 복원 · 잔류 0
+R5 부정훈련 3탭 전건 OK · 입력 정상 · ESC OK
+```
+
+`verify-btype.mjs` **53/53** · `verify-btype2.mjs` **177/177** · 타 페이지 5경로 0px · tsc 0 · build 경고 0 · MO-01~MO-08 · MI-01~MI-05 전건 유지.
+
+**⚠️ 주의사항 등록** — `lib/useModal.ts`의 포커스 트랩은 **`Tab` 키만 막는다.** 프로그램적 `.focus()`는 통과하므로, 모달이 열린 동안 배경 요소에 포커스를 주는 코드를 새로 만들지 말 것. 이번 결함의 ⑤단계가 정확히 그것이었다.
+
 ### 59) /kium 모바일 상담 진입 — 앵커·순서·요약 배너·키보드 가시성 (MI-01~MI-05)
 > 기준: [`ref/kium/spec/KEESS_kium_모바일_상담진입_기술명세서_v1.0_260908.md`](ref/kium/spec/KEESS_kium_모바일_상담진입_기술명세서_v1.0_260908.md) — 전략 [`…UX전략_v1.0`](ref/kium/strategy/KEESS_kium_모바일_상담진입_UX전략_v1.0_260908.md). 근거: 실기기 스크린샷 2매(현재/제안).
 > **"키보드를 없애 달라"가 아니었다** — 무엇을 신청 중이고 지금 어느 항목을 입력하는지 보이게 해 달라는 요구다. 자동 포커스는 유지한다.

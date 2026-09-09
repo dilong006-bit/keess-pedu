@@ -701,7 +701,7 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.waitForTimeout(900);
 
   /* A7 — 스트립 첫 6장 날짜 */
-  const stripDates = await p.locator('.kium-ustrip .kium-scard2-date b').allTextContents();
+  const stripDates = await p.locator('.kium-ustrip .kium-scard2:not([data-status="closed"]) .kium-scard2-date b').allTextContents();
 
   await p.locator('.kium-schedbox-toggle').click();
   await p.waitForTimeout(700);
@@ -740,14 +740,18 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   }
 
   /* A7 — 스트립 순서 == 리스트 **미마감** 앞 6행
-     [F21 갱신] 스트립은 effectiveStatus !== 'closed'로 마감을 빼고(F0-9),
-     리스트는 마감을 각 월 최하단에 남긴다. 두 뷰가 같은 규칙을 쓰는지 보려면
-     비교 대상에서 마감을 빼야 한다 — BT-18 '토글 교체 시 순서 일치' 전제는 그대로다. */
+     [F27 갱신] 스트립은 이제 마감도 담고 start ASC 단일로 정렬한다.
+     리스트는 BT-26대로 closed 를 각 월 최하단에 둔다 — 두 뷰의 정렬 축이 다르다.
+     '전체 일정'은 월 그룹 안에서 지난 것을 아래로 미는 목록이고,
+     스트립은 '다가오는 순서'를 그대로 보여주는 요약이라 서로 다른 것이 맞다.
+     BT-18 전제(토글 교체 시 순서 일치)는 **미마감 구간**에 대해서만 성립하므로
+     비교 대상에서 양쪽 모두 마감을 뺀다. */
   const listDates = byMonth.flatMap((g) => g.dates.filter((d, i) => g.statuses[i] !== 'closed'));
   ok(
-    'A7 스트립 6장 == 리스트 앞 6행 순서 일치',
-    JSON.stringify(stripDates) === JSON.stringify(listDates.slice(0, 6)),
-    `스트립 ${stripDates.join(' · ')} / 리스트 ${listDates.slice(0, 6).join(' · ')}`
+    // 스트립 6장 중 마감이 섞이면 미마감은 6장 미만이다 — 리스트도 같은 길이로 자른다
+    'A7 스트립(미마감) == 리스트 미마감 같은 길이 앞구간 순서 일치',
+    stripDates.length > 0 && JSON.stringify(stripDates) === JSON.stringify(listDates.slice(0, stripDates.length)),
+    `스트립 ${stripDates.length}장 ${stripDates.join(' · ')} / 리스트 ${listDates.slice(0, stripDates.length).join(' · ')}`
   );
 
   /* A5 — '1인 기준' 렌더 횟수 */
@@ -860,28 +864,31 @@ for (const w of [320, 375, 768, 1024, 1440]) {
       slist: bd.querySelectorAll('.kium-slist').length,
       rows: bd.querySelectorAll('.kium-srow').length,
       none: bd.querySelectorAll('.kium-noses.kium-ustrip-none').length,
-      date: bd.querySelector('.kium-srow-date b')?.textContent.trim(),
+      date: bd.querySelector('.kium-scard2-date b')?.textContent.trim(),
     };
   });
-  ok('A2 [F24] 마감 선택 — 본문이 .kium-slist 폴백 · 빈 문구 미노출',
-    a2.slist === 1 && a2.rows === 1 && a2.none === 0 && a2.strip === 0 && /^10\.21/.test(a2.date || ''),
+  /* [F27·F29 교체] F24 폴백은 폐기됐다 — 마감도 다른 상태와 같이 카드 스트립으로 렌더된다.
+     상태에 따라 컨테이너가 바뀌면 「간략히 보기」 토글이 죽은 컨트롤이 되기 때문이다. */
+  ok('K1 [F27] 마감 선택 — 카드 스트립 1장 · 리스트 0 · 빈 문구 0',
+    a2.strip === 1 && a2.slist === 0 && a2.rows === 0 && a2.none === 0 && /^10\.21/.test(a2.date || ''),
     JSON.stringify(a2));
 
   /* A4 — 마감 행 구성(배지 + 텍스트 링크 · 1행) */
   const a4 = await p.evaluate(() => {
-    const r = document.querySelector('.kium-schedbox-body .kium-srow[data-status="closed"]');
-    if (!r) return null;
-    const el = r.querySelector('.kium-sact-closed');
+    const c = document.querySelector('.kium-schedbox-body .kium-scard2[data-status="closed"]');
+    if (!c) return null;
+    const el = c.querySelector('.kium-sact-closed');
     const mid = (n) => { const q = n.getBoundingClientRect(); return q.top + q.height / 2; };
     return {
+      date: c.querySelector('.kium-scard2-date b').textContent.trim(),
       badge: el.querySelector('.kium-sbadge').textContent.trim(),
       link: el.querySelector('.kium-cta-next').textContent.trim(),
       oneLine: Math.abs(mid(el.querySelector('.kium-sbadge')) - mid(el.querySelector('.kium-cta-next'))) < 4,
-      isButton: !!el.querySelector('.kium-sact'),
+      isButton: !!c.querySelector('.kium-sact'),
     };
   });
-  ok('A4 [F24] 폴백 마감 행 — 정적 배지 `마감` + 링크 `다음 회차 상담` · 1행',
-    a4 && a4.badge === '마감' && a4.link === '다음 회차 상담' && a4.oneLine && !a4.isButton,
+  ok('K2 [F28] 마감 카드 — data-status=closed · 배지 `마감` + `다음 회차 상담` · 1행',
+    a4 && /^10\.21/.test(a4.date) && a4.badge === '마감' && a4.link === '다음 회차 상담' && a4.oneLine && !a4.isButton,
     JSON.stringify(a4));
 
   /* B2 — 마감 필터에서 과정 카드가 마감 회차를 말한다 */
@@ -908,6 +915,66 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   ok('C1 [F26] Empty Case — `해당 조건의 회차가 없습니다.` + [필터 초기화]',
     c1 && c1.text.startsWith('해당 조건의 회차가 없습니다.') && c1.btn === '필터 초기화',
     JSON.stringify(c1));
+  await p.close();
+}
+
+/* ═══ F27~F30 — 일정 박스 표현 일관성 ═════════════════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  const open = async () => {
+    await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+    await p.waitForSelector('.kium-chip-st', { timeout: 15000 });
+    await p.waitForTimeout(700);
+  };
+  const dom = () => p.evaluate(() => {
+    const bd = document.querySelector('.kium-schedbox-body');
+    return { cards: bd.querySelectorAll('.kium-scard2').length, rows: bd.querySelectorAll('.kium-srow').length };
+  });
+
+  /* T3 — 4상태 × 접힘/펼침. 라벨만 바뀌는 조합이 있으면 토글이 죽은 컨트롤이다 */
+  const ST = [['recruiting', '모집중'], ['confirmed', '개강확정'], ['closing', '마감임박'], ['closed', '마감']];
+  const table = [];
+  let dead = 0;
+  for (const [st, label] of ST) {
+    await open();
+    await p.locator(`.kium-chip-st[data-st="${st}"]`).click();
+    await p.waitForTimeout(800);
+    const c = await dom();
+    await p.locator('.kium-schedbox-toggle').click();
+    await p.waitForTimeout(800);
+    const e = await dom();
+    if (!(c.cards !== e.cards || c.rows !== e.rows)) dead += 1;
+    table.push(`${label} 접힘 ${c.cards}/${c.rows} → 펼침 ${e.cards}/${e.rows}`);
+  }
+  ok('T3 [F29] 4상태 × 접힘/펼침 — 라벨만 바뀌는 조합 0건', dead === 0, table.join(' | '));
+
+  /* T1 — 마감에서 토글이 카드 → 리스트로 실제 전환하고 되돌아온다 */
+  await open();
+  await p.locator('.kium-chip-st[data-st="closed"]').click();
+  await p.waitForTimeout(800);
+  const t1a = await dom();
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(800);
+  const t1b = await dom();
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(800);
+  const t1c = await dom();
+  ok('T1 [F29] 마감 토글 — 카드 → 리스트 → 카드 복귀',
+    t1a.cards === 1 && t1a.rows === 0 && t1b.cards === 0 && t1b.rows === 1 && t1c.cards === 1 && t1c.rows === 0,
+    JSON.stringify([t1a, t1b, t1c]));
+
+  /* E1 — 일반 URL에서 검토 칩이 상태 칩 행 맨 끝에 */
+  await open();
+  const e1 = await p.evaluate(() => {
+    const row = document.querySelector('#kium-cf-st + .kium-filters');
+    const chips = [...row.querySelectorAll('.kium-chip')].map((c) =>
+      c.className.includes('kium-chip-review') ? 'Empty Case' : c.innerText.replace(/\s+/g, ' ').trim());
+    return { chips, review: row.querySelectorAll('.kium-chip-review').length, last: chips[chips.length - 1] };
+  });
+  ok('E1 [F30] 일반 URL — 검토 칩이 상태 칩 행 맨 끝에 상시 노출',
+    e1.review === 1 && e1.last === 'Empty Case', e1.chips.join(' | '));
+  ok('E7 [F30] SHOW_REVIEW_CHIP 단일 상수가 노출을 제어', e1.review === 1,
+    'true → DOM 1개 (false 로 전환 시 0개 · display:none 아님)');
   await p.close();
 }
 
@@ -966,8 +1033,9 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.waitForTimeout(600);
   const v2 = (await p.locator('#kium-cf-st + .kium-filters .kium-chip').allTextContents())
     .map((t) => t.replace(/\s+/g, ' ').trim());
-  ok('V2 12월 상태 칩 = 전체 7 / 모집중 4 / 개강확정 3 (정확히 3개)',
-    v2.join(' | ') === '전체 7 | 모집중 4 | 개강확정 3', v2.join(' | '));
+  /* [F30 갱신] 검토 칩이 맨 끝에 붙는다 — 상태 칩 자체는 여전히 3개다 */
+  ok('V2 12월 상태 칩 = 전체 7 / 모집중 4 / 개강확정 3 (+ 검토 칩)',
+    v2.join(' | ') === '전체 7 | 모집중 4 | 개강확정 3 | Empty Case', v2.join(' | '));
 
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(800);
@@ -981,8 +1049,10 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(900);
   const strip = short(await p.locator('.kium-ustrip .kium-scard2-date b').allTextContents());
-  ok('U9 스트립 첫 6장 무변경 = 10.12 · 10.14 · 10.19 · 10.26 · 10.27 · 11.2',
-    strip === '10.12 · 10.14 · 10.19 · 10.26 · 10.27 · 11.2', strip);
+  /* [F27 갱신] 마감(10.21)이 스트립에 들어와 6번째 자리가 11.2 → 10.27 로 당겨졌다.
+     10월 회차만으로 구성된다는 사실과 3상태 커버리지는 그대로다. */
+  ok('U9 스트립 첫 6장 = 10.12 · 10.14 · 10.19 · 10.21 · 10.26 · 10.27',
+    strip === '10.12 · 10.14 · 10.19 · 10.21 · 10.26 · 10.27', strip);
 
   /* U10 — cs-r2 회차 CTA 프리필 */
   await p.goto(`${BASE}/kium?tab=courses&mode=open&consult=1&course=kium-19&session=cs-r2`, { waitUntil: 'networkidle' });
@@ -1006,10 +1076,10 @@ for (const w of [320, 375, 768, 1024, 1440]) {
 
   /* ── M1~M7 : 마감 UI — closed 0건이던 자리라 이번이 첫 렌더다 ── */
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
-  await p.waitForTimeout(900);
-  ok('M1 스트립 — 마감 회차 미노출',
-    (await p.locator('.kium-ustrip .kium-scard2[data-status="closed"]').count()) === 0,
-    (await p.locator('.kium-ustrip .kium-scard2').count()) + '장 중 마감 0');
+  /* [F27 교체] 스트립 closed 제외 규칙을 폐기했다 — 마감도 카드로 나온다(F28). */
+  ok('M1 [F27] 스트립 — 마감 회차도 카드로 노출',
+    (await p.locator('.kium-ustrip .kium-scard2[data-status="closed"]').count()) === 1,
+    (await p.locator('.kium-ustrip .kium-scard2').count()) + '장 중 마감 1');
 
   await p.locator('.kium-schedbox-toggle').click();
   await p.waitForTimeout(700);
@@ -1084,7 +1154,8 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.locator('.kium-schedbox-toggle').click();
   await p.waitForTimeout(600);
   const listN = await p.locator('.kium-srow').count();
-  ok('M5 마감 칩 선택 — 리스트 1건 · 스트립 0장', listN === 1 && stripN === 0, '리스트 ' + listN + ' / 스트립 ' + stripN);
+  /* [F27 갱신] 스트립이 마감을 더는 거르지 않는다 — 카드 1장 · 리스트 1행으로 같은 회차를 말한다 */
+  ok('M5 마감 칩 선택 — 리스트 1건 · 스트립 1장', listN === 1 && stripN === 1, '리스트 ' + listN + ' / 스트립 ' + stripN);
 
   /* M4 */
   await p.goto(`${BASE}/kium?tab=courses`, { waitUntil: 'networkidle' });
@@ -1102,25 +1173,27 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(900);
   const c1 = await chipTexts();
-  ok('C1 기간 전체 — 칩 5개(전체·모집중·개강확정·마감임박·마감)',
-    c1.length === 5 && /^전체/.test(c1[0]) && /마감 1$/.test(c1[4]), c1.join(' | '));
+  /* [F30 갱신] 검토용 Empty Case 칩이 행 맨 끝에 상시 노출된다 — 상태 칩 5 + 검토 칩 1 */
+  ok('C1 기간 전체 — 상태 칩 5개 + 검토 칩(전체·모집중·개강확정·마감임박·마감·Empty Case)',
+    c1.length === 6 && /^전체/.test(c1[0]) && /마감 1$/.test(c1[4]) && c1[5] === 'Empty Case', c1.join(' | '));
 
   await pickMonth('10월');
   const c4 = await chipTexts();
-  ok('C4 기간 10월 — 칩 5개(4상태 전부 · 한 화면 비교 가능)', c4.length === 5, c4.join(' | '));
+  ok('C4 기간 10월 — 상태 칩 5개 + 검토 칩(4상태 전부 · 한 화면 비교 가능)',
+    c4.length === 6 && c4[5] === 'Empty Case', c4.join(' | '));
 
   await pickMonth('11월');
   const c2 = await chipTexts();
-  ok('C2 기간 11월 — 칩 4개(마감 0건 → 미노출)',
-    c2.length === 4 && !c2.some((t) => /^마감 \d/.test(t)), c2.join(' | '));
+  ok('C2 기간 11월 — 상태 칩 4개 + 검토 칩(마감 0건 → 미노출)',
+    c2.length === 5 && !c2.some((t) => /^마감 \d/.test(t)) && c2[4] === 'Empty Case', c2.join(' | '));
 
   await pickMonth('12월');
   const c3 = await chipTexts();
   /* [F25] agent-r3(closing)가 11월로 귀속되어 12월 closing이 0건이 됐다.
      칩이 하나 더 사라지는 것은 결함이 아니라 F22('0건 칩은 선택지가 아니라 잡음')의
      정상 동작이며, 그 규칙이 두 단계로 발현되는 첫 실데이터 사례다. */
-  ok('C3 기간 12월 — 칩 3개(마감 · 마감임박 0건 → 미노출)',
-    c3.length === 3 && !c3.some((t) => /^마감 \d/.test(t)) && !c3.some((t) => /^마감임박/.test(t)),
+  ok('C3 기간 12월 — 상태 칩 3개 + 검토 칩(마감 · 마감임박 0건 → 미노출)',
+    c3.length === 4 && !c3.some((t) => /^마감 \d/.test(t)) && !c3.some((t) => /^마감임박/.test(t)) && c3[3] === 'Empty Case',
     c3.join(' | '));
 
   ok('C6 `전체` 칩은 모든 조건에서 노출',
@@ -1143,8 +1216,11 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   /* ── E1~E8 : Empty Case 검토 칩 ── */
   await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(800);
-  ok('E1 고객 화면(?preview 없음) — .kium-chip-review DOM 0건',
-    (await p.locator('.kium-chip-review').count()) === 0, '0건');
+  /* [F30 교체] F23 의 ?preview 게이트는 살아 있지만, 이 배포본이 기획서를 겸하므로
+     SHOW_REVIEW_CHIP = true 로 상시 노출한다(단일 상수). 실서비스 오픈 전 false 로 바꾸면
+     DOM 자체가 생성되지 않으며 ?preview 경로는 그대로 남는다 — 그 판정은 E7 이 맡는다. */
+  ok('E1 [F30] 일반 URL — 검토 칩 상시 노출(SHOW_REVIEW_CHIP)',
+    (await p.locator('.kium-chip-review').count()) === 1, '1건');
 
   await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=cases`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(900);

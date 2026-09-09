@@ -149,7 +149,11 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   const statuses = await page.locator('.kium-ustrip .kium-scard2').evaluateAll((els) =>
     els.map((e) => e.getAttribute('data-status'))
   );
-  ok('E2 closed 제외', !statuses.includes('closed'), statuses.join(','));
+  /* [F27 교체] 스트립의 closed 제외 규칙(F21 F0-9)을 폐기했다 —
+     상태에 따라 컨테이너가 바뀌면 「간략히 보기」 토글이 죽은 컨트롤이 된다.
+     이제 4개 상태가 모두 카드로 나오고 정렬은 start ASC 단일 기준이다. */
+  ok('E2 [F27] 스트립에 4상태 모두 노출 · start ASC 단일 정렬',
+    statuses.length === 6 && statuses.includes('closed'), statuses.join(','));
 
   const dates = await page.locator('.kium-ustrip-cell').evaluateAll((els) =>
     els.map((e) => e.getAttribute('data-evt-session'))
@@ -302,9 +306,10 @@ for (const entry of ['/kium?tab=open', '/kium#open']) {
   await page.locator('.kium-schedbox-toggle').click();
   await page.waitForTimeout(500);
   const closedAll = await page.locator('.kium-ulist [data-status="closed"]').count();
-  /* [F21 갱신] 마감 시드 1건이 들어왔다 — '마감 0건' 기대값을 교체한다.
-     스트립은 여전히 0장이어야 한다(effectiveStatus !== 'closed' 제외 규칙). */
-  ok('I6 마감 1건 · 스트립 0장(F21)', closedRows === 0 && closedAll === 1, `스트립 ${closedRows} / 전체 일정 ${closedAll}`);
+  /* [F27 갱신] 스트립의 closed 제외 규칙을 폐기했다 —
+     4개 상태가 모두 카드 스트립으로 렌더돼야 「간략히 보기」 토글이 실효를 갖는다.
+     이제 마감 회차는 스트립에도 카드로 나온다(F28). */
+  ok('I6 마감 1건 · 스트립 카드 1장(F27)', closedRows === 1 && closedAll === 1, `스트립 ${closedRows} / 전체 일정 ${closedAll}`);
 
   // 잘못된 id — 에러 없이 무시
   await page.goto(BASE + '/kium?tab=courses&mode=open&consult=1&course=nope&session=nope', { waitUntil: 'networkidle' });

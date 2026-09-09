@@ -60,30 +60,25 @@ export default function UpcomingSessionsStrip({
     return () => mq.removeEventListener('change', sync);
   }, []);
 
+  /**
+   * [F27] 스트립 소스는 '필터 결과를 날짜순으로'가 전부다.
+   *
+   * 종전에는 여기서 closed 를 걸렀다(F21 F0-9). 그 결과 마감을 고르면 스트립이 0장이 되고
+   * 같은 자리에 리스트가 들어와(F24 폴백) 4개 상태 중 마감만 다른 UI가 됐다 —
+   * 그 상태에서 「간략히 보기」를 눌러도 화면이 그대로라 토글이 죽은 컨트롤이 됐다.
+   * 상태에 따라 컨테이너가 바뀌는 것이 원인이었으므로, 거르지 않는다.
+   *
+   * 미래 회차 조건(end >= today)은 상위 필터가 이미 적용한다 —
+   * 여기 들어오는 closed 는 '날짜는 남았으나 정원이 찬 회차'뿐이고, 그건 보여줘야 하는 사실이다.
+   * 정렬은 start ASC 단일 기준. 상태별 우선순위·그룹 정렬을 만들지 않는다.
+   */
   const upcoming = useMemo(
-    () =>
-      sessions
-        .filter((s) => effectiveStatus(s, now) !== 'closed')
-        .sort((a, b) => a.start.localeCompare(b.start)),
-    [sessions, now]
+    () => [...sessions].sort((a, b) => a.start.localeCompare(b.start)),
+    [sessions]
   );
 
   const shown = upcoming.slice(0, mo ? MO_MAX : PC_MAX);
   const bodyId = 'kium-schedbox-body';
-
-  /**
-   * [F24] 스트립이 0장이 되는 순간(= 필터 결과가 마감뿐일 때) 같은 자리를 리스트가 대신한다.
-   *   스트립은 「다가오는 신청 가능 일정」 화면이라 마감을 넣지 않는다(F21 채택 근거) —
-   *   그 규칙은 그대로 두고, 결과를 보여 줄 수단만 바꾼다.
-   *   기존에는 "전체 일정에서 확인하세요"라는 안내만 띄워 조작을 한 번 더 요구했다.
-   */
-  const fallback = sessions.length > 0 && shown.length === 0;
-
-  /* 폴백 진입을 스크린리더에 1회 고지한다. 화면은 바뀌었는데 말이 없으면 알 길이 없다 */
-  useEffect(() => {
-    if (!fallback) return;
-    setLive(`조건에 맞는 회차 ${sessions.length}건을 일정 목록으로 표시했습니다`);
-  }, [fallback, sessions.length]);
 
   const toggle = () => {
     const next = !expanded;
@@ -126,24 +121,10 @@ export default function UpcomingSessionsStrip({
               onCourseFocus={onCourseFocus}
             />
           </div>
-        ) : fallback ? (
-          /* [F24] 마감만 남은 상태 — 「전체 일정」이 쓰는 리스트를 그대로 재사용한다.
-             신규 컴포넌트를 만들지 않는다. 데이터는 현재 필터가 적용된 회차 그대로다.
-             토글은 헤더에 그대로 있어 전개·복귀가 된다. */
-          <div className="kium-ulist is-in">
-            <SessionListView
-              sessions={sessions}
-              now={now}
-              onConsultSession={onConsultSession}
-              showMonthCta={false}
-              onCourseFocus={onCourseFocus}
-            />
-          </div>
         ) : shown.length === 0 ? (
-          /* [F26] F24 폴백이 앞서므로 이 자리는 sessions 자체가 0건일 때만 남는다 —
-             그 경우는 상위(KiumCoursesTab)의 .kium-empty2 가 이미 처리하므로 실제로는 도달하지 않는다.
-             방어적으로 남기되 문구는 사실에 맞춘다: relead-r1(10.21)은 미래 날짜의 정원 충족 마감이라
-             '지난 회차'가 아니다. */
+          /* [F26] 이 자리는 sessions 자체가 0건일 때만 남는다 — 그 경우는 상위(KiumCoursesTab)의
+             .kium-empty2 가 이미 처리하므로 실제로는 도달하지 않는다. 방어적으로 남기되
+             문구는 사실에 맞춘다: relead-r1(10.21)은 미래 날짜의 정원 충족 마감이라 '지난 회차'가 아니다. */
           <p className="kium-noses kium-ustrip-none">해당 조건의 회차가 없습니다.</p>
         ) : (
           <div className="kium-ustrip">

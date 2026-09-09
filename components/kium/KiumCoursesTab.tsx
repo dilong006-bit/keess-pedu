@@ -68,6 +68,12 @@ const STATUS_ICON: Record<KiumSessionStatus, (p: { size?: 14 }) => JSX.Element> 
  *   now는 null로 시작해 마운트 후 세팅하고, now가 null인 동안 isPast는 호출되지 않으므로
  *   서버 렌더와 첫 클라이언트 렌더의 회차 집합이 동일하다(하이드레이션 불일치 없음).
  */
+/* [F30] 검토용 칩 — 이 배포본은 기획서를 겸하므로 상시 노출한다.
+   디자이너·개발자가 URL 규약(?preview)을 몰라도 0건 케이스를 눌러 볼 수 있어야 한다.
+   ★ 실서비스 오픈 전 반드시 false 로 변경할 것. false 면 DOM 자체가 생성되지 않으며,
+     ?preview=cases · ?preview=badges 검토 경로는 그대로 살아 있다. */
+const SHOW_REVIEW_CHIP = true;
+
 export default function KiumCoursesTab() {
   const rootRef = useRef<HTMLDivElement>(null);
   const segRef = useRef<HTMLDivElement>(null);
@@ -484,7 +490,7 @@ export default function KiumCoursesTab() {
                     점선 테두리로 '실제 필터가 아님'을 형태로 말한다 — 색이 아니라 형태다.
                     카운트는 항상 0이라 정보가 없어 표기하지 않고,
                     data-st는 상태 아이콘 색 규칙(.kium-chip-st[data-st])에 걸리므로 주지 않는다. */}
-                {reviewMode && (
+                {(SHOW_REVIEW_CHIP || reviewMode) && (
                   <button
                     type="button"
                     className="kium-chip kium-chip-review"

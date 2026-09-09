@@ -199,7 +199,8 @@ const browser = await chromium.launch();
   await p.waitForTimeout(800);
   /* [검토용 시드 v1.0] 스트립에 3상태가 섞인다 — '라벨 1종' 전제를 상태별 매핑 검증으로 교체 */
   // [BT-27] 신청 가능 3상태 라벨 통일 — 우측이 상태를 반복하지 않는다
-  const CTA_BY_TONE = { amber: '상담하기', green: '상담하기', red: '상담하기' };
+  // [F31] 마감도 같은 버튼이 됐다(gray) — 라벨만 다르다
+  const CTA_BY_TONE = { amber: '상담하기', green: '상담하기', red: '상담하기', gray: '다음 회차 상담' };
   const pairs = await p.locator('.kium-ustrip .kium-sact').evaluateAll((els) =>
     els.map((e) => ({
       tone: e.getAttribute('data-tone'),
@@ -217,9 +218,9 @@ const browser = await chromium.launch();
     pairs.every((x) => (x.aria || '').endsWith(CTA_BY_TONE[x.tone])),
     pairs.map((x) => (x.aria || '').slice(-14)).join(' / ')
   );
-  // 3상태가 스트립 첫 화면에 실제로 다 뜨는가(§2-3 설계 기준 3)
+  // [F27 갱신] 스트립이 마감을 더는 거르지 않는다 — 첫 화면에 4상태가 모두 뜬다
   const tones = Array.from(new Set(pairs.map((x) => x.tone)));
-  ok('T2-b 스트립 첫 화면에 3상태 전부', tones.length === 3, tones.sort().join(','));
+  ok('T2-b 스트립 첫 화면에 4상태 전부(F27)', tones.length === 4, tones.sort().join(','));
 
   /* v2.1 §5-5 — 카드 요소 수 5개 → 4개 */
   const parts = await p.locator('.kium-ustrip .kium-scard2').first().evaluate((el) =>
@@ -250,15 +251,15 @@ const browser = await chromium.launch();
   await p.locator('.kium-schedbox-toggle').click();
   await p.waitForTimeout(600);
   const rowSact = await p.locator('.kium-srow .kium-sact').count();
-  /* [F21 갱신] 마감 행은 버튼이 아니라 .kium-sact-closed(정적 배지 + 텍스트 링크)라
-     .kium-sact가 잡히지 않는다 — 형태로 구분한다는 BT-20 설계 그대로다. */
+  /* [F31 교체] 마감도 공용 button.kium-sact 다 — 형태는 전 상태 동일, 라벨과 톤만 다르다.
+     마감 행도 .kium-sact 로 잡히므로 별도 카운트가 0이어야 한다. */
   const rowClosed = await p.locator('.kium-srow .kium-sact-closed').count();
   const rowCta = await p.locator('.kium-srow > .kium-srow-act > .kium-cta-ses').count();
   const rows = await p.locator('.kium-srow').count();
   ok(
-    'T5 리스트 행도 통합 버튼(BT-22 · F21)',
-    rowSact + rowClosed === rows && rows > 0 && rowCta === 0,
-    `행 ${rows} / sact ${rowSact} + 마감 ${rowClosed} / 구 CTA ${rowCta}`
+    'T5 리스트 행도 통합 버튼(BT-22 · F31) — 마감 포함 전건 .kium-sact',
+    rowSact === rows && rows > 0 && rowClosed === 0 && rowCta === 0,
+    `행 ${rows} / sact ${rowSact} / 구 형태 ${rowClosed} / 구 CTA ${rowCta}`
   );
 
   /* 리스트 행 폭 규칙 — 상태 영역이 한 열에 서는가.
@@ -340,11 +341,13 @@ const browser = await chromium.launch();
     const got = showcase.find((r) => r.status === st)?.color;
     ok(`C2-${st} 통합 버튼 아이콘 색 = ${exp}`, got === exp, `실측 ${got}`);
   }
-  // closed는 .kium-sact-closed 분기 → .kium-sbadge[data-tone="gray"] 배색 유지(변경 금지 대상)
-  const closedBadgeBg = await p
-    .locator('.kium-showcase .kium-strip .kium-scard2[data-status="closed"] .kium-sbadge')
-    .evaluate((el) => getComputedStyle(el).backgroundColor);
-  ok('C2-closed 마감 배지 pill 배색 무변경(#F3F4F6)', closedBadgeBg === 'rgb(243, 244, 246)', closedBadgeBg);
+  /* [F31 교체] 마감도 공용 button.kium-sact 가 됐다 — 더는 .kium-sbadge 를 액션에 쓰지 않는다.
+     같은 gray 값(#F3F4F6)을 액션 틴트로 옮겨 썼으므로 배색 출처는 그대로다. */
+  const closedTint = await p
+    .locator('.kium-showcase .kium-strip .kium-scard2[data-status="closed"] .kium-sact[data-tone="gray"]')
+    .evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, icon: getComputedStyle(el.querySelector('.kium-sact-st svg')).color }));
+  ok('C2-closed 마감 액션 gray 틴트(#F3F4F6) · 아이콘 #4B5563',
+    closedTint.bg === 'rgb(243, 244, 246)' && closedTint.icon === 'rgb(75, 85, 99)', JSON.stringify(closedTint));
   await p.close();
 }
 
@@ -397,15 +400,18 @@ const browser = await chromium.launch();
   const p = await browser.newPage({ viewport: { width: 375, height: 900 } });
   await p.goto(`${BASE}/kium?tab=courses&mode=open&preview=badges`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(800);
+  /* [F31 교체] 마감도 공용 button.kium-sact 다 — 형태는 전 상태 동일, 라벨과 톤만 다르다. */
   const geo = await p
-    .locator('.kium-showcase .kium-scard2[data-status="closed"] .kium-sact-closed')
+    .locator('.kium-showcase .kium-scard2[data-status="closed"] .kium-sact[data-tone="gray"]')
     .first()
     .evaluate((el) => {
-      const badge = el.querySelector('.kium-sbadge').getBoundingClientRect();
-      const link = el.querySelector('.kium-cta-next').getBoundingClientRect();
-      return { sameLine: Math.abs(badge.top - link.top) < badge.height, isButton: false };
+      const st = el.querySelector('.kium-sact-st').getBoundingClientRect();
+      const go = el.querySelector('.kium-sact-go').getBoundingClientRect();
+      return { sameLine: Math.abs(st.top - go.top) < st.height, isButton: el.tagName === 'BUTTON',
+        legacy: el.querySelectorAll('.kium-sbadge, .kium-cta-next').length };
     });
-  ok('X-card 375px 마감 카드 한 줄(배지 + 텍스트 링크)', geo.sameLine, JSON.stringify(geo));
+  ok('X-card 375px 마감 카드 한 줄(공용 버튼 · F31)',
+    geo.sameLine && geo.isButton && geo.legacy === 0, JSON.stringify(geo));
   await p.close();
 }
 
@@ -422,14 +428,14 @@ const browser = await chromium.launch();
   const rows = await cards.evaluateAll((els) =>
     els.map((el) => {
       const act = el.querySelector('.kium-sact');
-      const closed = el.querySelector('.kium-sact-closed');
+      const closed = el.querySelector('.kium-sact[data-tone="gray"]');
       return {
         status: el.getAttribute('data-status'),
         isButton: !!act,
         tone: act ? act.getAttribute('data-tone') : null,
         go: (el.querySelector('.kium-sact-go') || el.querySelector('.kium-cta-next'))?.textContent.trim(),
         seats: el.querySelector('.kium-sact-st em')?.textContent.trim() || null,
-        closedShape: !!closed && !!closed.querySelector('.kium-sbadge') && !!closed.querySelector('.kium-cta-next'),
+        closedShape: !!closed && !!closed.querySelector('.kium-sact-lb') && !!closed.querySelector('.kium-sact-go'),
       };
     })
   );
@@ -444,7 +450,7 @@ const browser = await chromium.launch();
   );
   ok(
     'U5 closed — 버튼 아님 · 정적 배지 + 텍스트 링크',
-    by('closed')?.isButton === false && by('closed')?.closedShape === true && by('closed')?.go === '다음 회차 상담',
+    by('closed')?.isButton === true && by('closed')?.closedShape === true && by('closed')?.go === '다음 회차 상담',
     JSON.stringify(by('closed'))
   );
   ok(
@@ -542,7 +548,7 @@ const browser = await chromium.launch();
   await p.waitForTimeout(800);
   await p.locator('.kium-schedbox-toggle').click();
   await p.waitForTimeout(600);
-  await p.locator('.kium-srow .kium-sact-closed .kium-cta-next').first().click();
+  await p.locator('.kium-srow .kium-sact[data-tone="gray"]').first().click();
   await p.waitForTimeout(1000);
   v = await ta(p).inputValue();
   ok(
@@ -873,22 +879,25 @@ for (const w of [320, 375, 768, 1024, 1440]) {
     a2.strip === 1 && a2.slist === 0 && a2.rows === 0 && a2.none === 0 && /^10\.21/.test(a2.date || ''),
     JSON.stringify(a2));
 
-  /* A4 — 마감 행 구성(배지 + 텍스트 링크 · 1행) */
+  /* [F31 교체] 마감 카드 액션도 공용 button.kium-sact[gray] 다 — 형태는 전 상태 동일 */
   const a4 = await p.evaluate(() => {
     const c = document.querySelector('.kium-schedbox-body .kium-scard2[data-status="closed"]');
     if (!c) return null;
-    const el = c.querySelector('.kium-sact-closed');
+    const el = c.querySelector('.kium-sact');
     const mid = (n) => { const q = n.getBoundingClientRect(); return q.top + q.height / 2; };
     return {
       date: c.querySelector('.kium-scard2-date b').textContent.trim(),
-      badge: el.querySelector('.kium-sbadge').textContent.trim(),
-      link: el.querySelector('.kium-cta-next').textContent.trim(),
-      oneLine: Math.abs(mid(el.querySelector('.kium-sbadge')) - mid(el.querySelector('.kium-cta-next'))) < 4,
-      isButton: !!c.querySelector('.kium-sact'),
+      tone: el.getAttribute('data-tone'),
+      badge: el.querySelector('.kium-sact-lb').textContent.trim(),
+      link: el.querySelector('.kium-sact-go').textContent.trim(),
+      oneLine: Math.abs(mid(el.querySelector('.kium-sact-st')) - mid(el.querySelector('.kium-sact-go'))) < 4,
+      isButton: el.tagName === 'BUTTON',
+      legacy: c.querySelectorAll('.kium-sbadge, .kium-cta-next, .kium-sact-closed').length,
     };
   });
-  ok('K2 [F28] 마감 카드 — data-status=closed · 배지 `마감` + `다음 회차 상담` · 1행',
-    a4 && /^10\.21/.test(a4.date) && a4.badge === '마감' && a4.link === '다음 회차 상담' && a4.oneLine && !a4.isButton,
+  ok('K2 [F28·F31] 마감 카드 — data-status=closed · 공용 버튼[gray] `마감` + `다음 회차 상담` · 1행',
+    a4 && /^10\.21/.test(a4.date) && a4.tone === 'gray' && a4.badge === '마감' &&
+      a4.link === '다음 회차 상담' && a4.oneLine && a4.isButton && a4.legacy === 0,
     JSON.stringify(a4));
 
   /* B2 — 마감 필터에서 과정 카드가 마감 회차를 말한다 */
@@ -915,6 +924,99 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   ok('C1 [F26] Empty Case — `해당 조건의 회차가 없습니다.` + [필터 초기화]',
     c1 && c1.text.startsWith('해당 조건의 회차가 없습니다.') && c1.btn === '필터 초기화',
     JSON.stringify(c1));
+  await p.close();
+}
+
+/* ═══ F31 · F32 — 액션 형태 통일 ══════════════════════════════════ */
+{
+  const p = await browser.newPage({ viewport: PC });
+  const open = async () => {
+    await p.goto(`${BASE}/kium?tab=courses&mode=open`, { waitUntil: 'networkidle' });
+    await p.waitForSelector('.kium-chip-st', { timeout: 20000 });
+    await p.waitForTimeout(700);
+  };
+  const ST = [['recruiting', '모집중'], ['confirmed', '개강확정'], ['closing', '마감임박'], ['closed', '마감']];
+
+  /* K6 · S3 — 4상태의 카드/액션 자식 시퀀스가 완전히 같아야 한다.
+     형태는 전 상태 동일, 차이는 라벨과 색 토큰으로만 표현한다는 것이 이 작업의 판단 기준이다. */
+  const seqs = [];
+  for (const [st] of ST) {
+    await open();
+    await p.locator(`.kium-chip-st[data-st="${st}"]`).click();
+    await p.waitForTimeout(800);
+    seqs.push(await p.evaluate(() => {
+      const c = document.querySelector('.kium-schedbox-body .kium-scard2');
+      const act = c.querySelector('.kium-sact');
+      return {
+        card: [...c.children].map((e) => e.className.split(' ')[0]).join('→'),
+        act: act ? [...act.children].map((e) => {
+          const cls = e.className.split(' ')[0];
+          const inner = [...e.children].map((x) => x.tagName === 'svg' ? 'svg' : (x.className.baseVal ?? x.className).split(' ')[0]);
+          return inner.length ? cls + '(' + inner.join('+') + ')' : cls;
+        }).join('→') : '(없음)',
+        tag: act?.tagName.toLowerCase(),
+        tone: act?.getAttribute('data-tone'),
+        lb: act?.querySelector('.kium-sact-lb')?.textContent.trim(),
+        go: act?.querySelector('.kium-sact-go')?.textContent.trim(),
+        aria: act?.getAttribute('aria-label') || '',
+        disabled: !!act?.hasAttribute('disabled'),
+        legacy: c.querySelectorAll('.kium-sact-closed, .kium-cta-next').length,
+        meta: c.querySelectorAll('.kium-srow-meta').length,
+      };
+    }));
+  }
+  const cardSeq = [...new Set(seqs.map((x) => x.card))];
+  ok('K6 [F28] 4상태 카드 자식 시퀀스 완전 동일', cardSeq.length === 1, cardSeq.join(' vs '));
+  ok('K7 [F28] 카드에 교육시간·교육비 없음', seqs.every((x) => x.meta === 0), '.kium-srow-meta 0건');
+
+  const actSeq = [...new Set(seqs.map((x) => x.act))];
+  ok('S3 [F31] 4상태 액션 자식 시퀀스 완전 동일', actSeq.length === 1, actSeq.join(' vs '));
+
+  const cl = seqs[3];
+  ok('S1 [F31] 마감 액션 = button.kium-sact[gray] 단일 · 구 컴포넌트 미사용',
+    cl.tag === 'button' && cl.tone === 'gray' && cl.legacy === 0,
+    `${cl.tag}[${cl.tone}] · .kium-sact-closed/.kium-cta-next ${cl.legacy}건`);
+  ok('S2 [F31] 마감 라벨 = `마감` + `다음 회차 상담`',
+    cl.lb === '마감' && cl.go === '다음 회차 상담', `"${cl.lb}" + "${cl.go}"`);
+  ok('S8 [F31] 마감 액션에 disabled 미부여', !cl.disabled, 'disabled 없음');
+  ok('S9 [F31] aria-label 이 다른 상태와 같은 패턴 · 끝이 `마감 다음 회차 상담`',
+    seqs.every((x) => x.aria.endsWith(x.lb + ' ' + x.go)) && cl.aria.endsWith('마감 다음 회차 상담'),
+    cl.aria.slice(-22));
+
+  /* S4 · S5 — 리스트 행도 같은 버튼으로 */
+  await open();
+  await p.locator('.kium-chip-st[data-st="closed"]').click();
+  await p.waitForTimeout(800);
+  await p.locator('.kium-schedbox-toggle').click();
+  await p.waitForTimeout(800);
+  const s4 = await p.evaluate(() => {
+    const r = document.querySelector('.kium-schedbox-body .kium-srow[data-status="closed"]');
+    const act = r.querySelector('.kium-srow-act');
+    const btn = act.querySelector('.kium-sact');
+    return {
+      rowKids: [...r.children].map((e) => e.className.split(' ')[0]).join('→'),
+      tag: btn?.tagName.toLowerCase(), tone: btn?.getAttribute('data-tone'),
+      legacy: act.querySelectorAll('.kium-sact-closed, .kium-cta-next').length,
+    };
+  });
+  ok('S4 [F32] 리스트 마감 행 액션도 button.kium-sact[gray] · 구 컴포넌트 미사용',
+    s4.tag === 'button' && s4.tone === 'gray' && s4.legacy === 0, JSON.stringify(s4));
+  ok('S5 [F32] .kium-srow 자체 구조 무변경',
+    s4.rowKids === 'kium-srow-date→kium-srow-main→kium-srow-meta→kium-srow-act', s4.rowKids);
+
+  /* K8 — 카드 1장일 때 폭 고정 */
+  await open();
+  const wAll = await p.evaluate(() => Math.round(document.querySelector('.kium-schedbox-body .kium-scard2').getBoundingClientRect().width));
+  await p.locator('.kium-chip-st[data-st="closed"]').click();
+  await p.waitForTimeout(800);
+  const wOne = await p.evaluate(() => {
+    const c = document.querySelector('.kium-schedbox-body .kium-scard2');
+    const g = document.querySelector('.kium-schedbox-body .kium-ustrip');
+    return { w: Math.round(c.getBoundingClientRect().width),
+      aligned: Math.round(c.getBoundingClientRect().left) === Math.round(g.getBoundingClientRect().left) };
+  });
+  ok('K8 [F28] 마감 1장일 때도 카드 폭 동일 · 좌측 정렬',
+    wOne.w === wAll && wOne.aligned, `전체 ${wAll}px / 1장 ${wOne.w}px · 정렬 ${wOne.aligned}`);
   await p.close();
 }
 
@@ -1091,19 +1193,20 @@ for (const w of [320, 375, 768, 1024, 1440]) {
     oct.map((o) => o.d + ':' + o.st).join(' · '));
 
   const closedRow = p.locator('.kium-srow[data-status="closed"]').first();
-  const m3 = await closedRow.locator('.kium-sact-closed').evaluate((el) => {
-    const badge = el.querySelector('.kium-sbadge');
-    const link = el.querySelector('.kium-cta-next');
+  /* [F31 교체] 마감도 공용 button.kium-sact 다 — 형태는 전 상태 동일, 라벨과 톤만 다르다. */
+  const m3 = await closedRow.locator('.kium-sact[data-tone="gray"]').evaluate((el) => {
+    const badge = el.querySelector('.kium-sact-lb');
+    const link = el.querySelector('.kium-sact-go');
     const mid = (n) => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
     return {
       badge: badge.textContent.trim(),
       link: link.textContent.trim(),
       oneLine: Math.abs(mid(badge) - mid(link)) < 4,
-      isButton: !!el.querySelector('.kium-sact'),
+      isButton: el.tagName === 'BUTTON',
     };
   });
-  ok('M3 리스트 마감 행 — 정적 배지 `마감` + 링크 `다음 회차 상담` · 1행',
-    m3.badge === '마감' && m3.link === '다음 회차 상담' && m3.oneLine && !m3.isButton,
+  ok('M3 리스트 마감 행 — 공용 버튼 `마감` + `다음 회차 상담` · 1행(F31)',
+    m3.badge === '마감' && m3.link === '다음 회차 상담' && m3.oneLine && m3.isButton,
     JSON.stringify(m3));
 
   /* M6 — opacity:.72가 걸린 상태의 실효 대비. 미달이면 수치와 함께 남긴다(임의 수정 금지) */
@@ -1123,13 +1226,14 @@ for (const w of [320, 375, 768, 1024, 1440]) {
     const base = bgOf(row.parentElement);
     const mix = (c) => c.map((v, i) => v * a + base[i] * (1 - a));
     const out = { opacity: a };
-    for (const [k, sel] of [['배지 마감', '.kium-sbadge'], ['날짜', '.kium-srow-date b'], ['링크', '.kium-cta-next']]) {
+    /* [F31] 마감 액션이 공용 버튼이 되어 셀렉터가 바뀌었다 */
+    for (const [k, sel] of [['상태 라벨', '.kium-sact-lb'], ['날짜', '.kium-srow-date b'], ['CTA', '.kium-sact-go']]) {
       const el = row.querySelector(sel);
       out[k] = Math.round(ratio(mix(parse(getComputedStyle(el).color)), mix(bgOf(el))) * 100) / 100;
     }
     return out;
   });
-  const m6min = Math.min(m6['배지 마감'], m6['날짜'], m6['링크']);
+  const m6min = Math.min(m6['상태 라벨'], m6['날짜'], m6['CTA']);
   /* [F21 · 알려진 이슈] 마감 회차가 처음 렌더되면서 README 알려진 이슈 15번이 실증됐다.
      .kium-srow[data-status="closed"]{opacity:.72}가 전경·배경을 함께 흐리므로
      배지 pill(#6B7280 on #F3F4F6)과 텍스트 링크가 AA 4.5:1에 미달한다.
@@ -1528,7 +1632,7 @@ for (const w of [320, 375, 768, 1024, 1440]) {
     const show = await p.locator('.kium-showcase .kium-ustrip .kium-scard2').evaluateAll((els) =>
       els.map((e) => {
         const act = e.querySelector('.kium-sact');
-        const closed = e.querySelector('.kium-sact-closed');
+        const closed = e.querySelector('.kium-sact[data-tone="gray"]');
         // 높이가 다른 형제(배지 24px vs 링크 44px)가 center 정렬돼 있으므로
         // top이 아니라 **중심선**을 비교해야 '같은 줄'을 옳게 판정한다.
         const mid = (n) => { const r = n.getBoundingClientRect(); return r.top + r.height / 2; };
@@ -1564,7 +1668,8 @@ for (const w of [320, 375, 768, 1024, 1440]) {
         JSON.stringify(worst)
       );
       const cl = show.find((x) => x.status === 'closed');
-      ok('C5 마감 카드 — 버튼 아님 · 배지+링크 1행', cl && cl.isButton === false && cl.oneLine, JSON.stringify(cl));
+      /* [F31 교체] 마감도 공용 버튼이다 — 형태로 구분하지 않고 라벨·톤으로만 구분한다 */
+      ok('C5 마감 카드 — 공용 버튼 · 1행(F31)', cl && cl.isButton === true && cl.oneLine, JSON.stringify(cl));
     }
     rows.push({ w, strip: strip.length, list: list.length });
     await p.close();
@@ -1588,7 +1693,7 @@ for (const w of [320, 375, 768, 1024, 1440]) {
     p.locator('.kium-ustrip .kium-scard2').evaluateAll((els) =>
       els.map((e) => {
         const card = e.getBoundingClientRect();
-        const btn = e.querySelector('.kium-sact, .kium-sact-closed').getBoundingClientRect();
+        const btn = e.querySelector('.kium-sact').getBoundingClientRect();
         const course = e.querySelector('.kium-scard2-course').getBoundingClientRect();
         return {
           gap: Math.round(card.bottom - btn.bottom),
@@ -1613,12 +1718,18 @@ for (const w of [320, 375, 768, 1024, 1440]) {
   await p.setViewportSize(PC);
   await p.waitForTimeout(400);
 
-  /* C1 — 신청 가능 3상태 라벨 동일 */
+  /* C1 — 신청 가능 3상태 라벨 동일
+     [F31 갱신] 마감(gray)도 같은 버튼이 됐지만 CTA 문구는 다르다 —
+     '다음 회차'는 *다른 회차*를 가리키는 정보이지 상태 반복이 아니기 때문이다(BT-27).
+     이 단언의 대상은 신청 가능 3상태이므로 gray 를 빼고 본다. */
   const labels = await p.locator('.kium-ustrip .kium-sact').evaluateAll((els) =>
     els.map((e) => `${e.getAttribute('data-tone')}:${e.querySelector('.kium-sact-go').textContent.trim()}`)
   );
-  const uniq = [...new Set(labels.map((x) => x.split(':')[1]))];
-  ok('C1 신청 가능 3상태 CTA 라벨 = 상담하기 단일', uniq.length === 1 && uniq[0] === '상담하기', labels.join(' / '));
+  const openLabels = labels.filter((x) => !x.startsWith('gray:'));
+  const uniq = [...new Set(openLabels.map((x) => x.split(':')[1]))];
+  const grayOk = labels.filter((x) => x.startsWith('gray:')).every((x) => x === 'gray:다음 회차 상담');
+  ok('C1 신청 가능 3상태 CTA = 상담하기 단일 · 마감만 다음 회차 상담',
+    uniq.length === 1 && uniq[0] === '상담하기' && grayOk, labels.join(' / '));
 
   /* C6 — 접근명에 상태가 남는다 */
   const aria = await p.locator('.kium-ustrip .kium-sact[data-tone="red"]').first().getAttribute('aria-label');

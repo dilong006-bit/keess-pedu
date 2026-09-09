@@ -138,32 +138,27 @@ export function SessionAction({
   // 문구는 CTA_LABEL 한 곳에만 둔다 — 여기서 문자열을 다시 쓰면 출처가 둘이 된다
   const text = CTA_LABEL[status];
 
-  if (status === 'closed') {
-    return (
-      <div className="kium-sact-closed">
-        <span className="kium-sbadge" data-tone="gray">
-          <Icon size={14} />
-          <span>{meta.label}</span>
-        </span>
-        <button
-          type="button"
-          className="kium-cta-next"
-          onClick={onNext}
-          aria-label={`${label} ${text}`}
-        >
-          <IconCornerDownRight size={16} />
-          <span>{text}</span>
-        </button>
-      </div>
-    );
-  }
-
+  /**
+   * [F31] 마감도 같은 버튼이다.
+   *
+   * BT-20에서는 마감을 '정적 배지 + 텍스트 링크'로 두어 **형태로** 신청 불가를 구분했다.
+   * 그 판단은 마감이 데이터에 0건이라 화면에 나온 적이 없을 때 내려졌고,
+   * F27로 마감 카드가 스트립에 들어오면서 같은 줄에 네 가지 형태가 섞이게 됐다 —
+   * 사용자가 본 것은 '신청 불가 표현'이 아니라 '일관되지 않은 UI'였다.
+   *
+   * 형태(마크업·배치·정보 항목)는 전 상태 동일하게 두고
+   * 차이는 라벨 텍스트와 색(data-tone)으로만 말한다.
+   * 마감이 다른 것은 ① 라벨 '마감' ② 회색 톤 ③ CTA '다음 회차 상담' ④ 프리필 경로 B, 넷뿐이다.
+   *
+   * 마감 액션도 활성 컨트롤이다 — 누르면 다음 회차 상담으로 이어지므로 disabled 를 주지 않는다.
+   * 경로만 갈린다: closed 는 onNext(경로 B), 나머지는 onClick(경로 A).
+   */
   return (
     <button
       type="button"
       className="kium-sact"
       data-tone={meta.tone}
-      onClick={onClick}
+      onClick={status === 'closed' ? onNext : onClick}
       aria-label={`${label} ${meta.label} ${text}`}
     >
       <span className="kium-sact-st">

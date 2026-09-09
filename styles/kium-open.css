@@ -119,6 +119,12 @@
 .kium-sact[data-tone="green"] .kium-sact-st svg{color:#15803D}
 .kium-chip-st[data-st="closing"] svg,
 .kium-sact[data-tone="red"] .kium-sact-st svg{color:#DC2626}
+/* [F31] 마감 톤 — .kium-sbadge[data-tone="gray"] 가 쓰는 것과 같은 회색이다(신규 토큰 0).
+   red(마감임박)와 같은 방식으로 틴트를 채운다 — 액션이 투명하면 마감만 형태가 비어 보인다.
+   red 는 '긴박감'을 위해 강조하지만 gray 는 '지나감'을 위해 가라앉힌다. 채도 체계는 같다. */
+.kium-sact[data-tone="gray"]{background:#F3F4F6;border-color:var(--line)}
+.kium-sact[data-tone="gray"] .kium-sact-st svg{color:#4B5563}
+.kium-sact[data-tone="gray"] .kium-sact-go{color:var(--muted)}
 .kium-chip-st[data-st="closed"] svg{color:#6B7280}
 /* 선택 시에는 칩 전체가 네이비라 아이콘도 흰색으로 넘어간다 — 반드시 위 규칙들보다 뒤 */
 .kium-chip-st[aria-pressed="true"] svg{color:#fff}
@@ -251,9 +257,10 @@ button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--sh
 .kium-scard2{display:flex;flex-direction:column;align-items:flex-start;gap:8px;
   background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;
   box-shadow:var(--shadow-1)}
-.kium-scard2[data-status="closed"]{background:var(--surface)}
-.kium-scard2[data-status="closed"] .kium-scard2-date b,
-.kium-scard2[data-status="closed"] .kium-scard2-course{color:var(--muted)}
+/* [F33] 카드 자체는 전 상태 흰색이다 — 마감이라고 카드를 회색으로 칠하지 않는다.
+   형태·치수·배경이 같아야 4상태가 한 줄에 섞여도 '같은 종류의 카드'로 읽힌다.
+   마감 구분은 액션 톤(gray 틴트)과 상태 라벨 두 축으로만 말한다.
+   ※ 리스트 행(.kium-srow)의 배경 구분은 그대로 둔다 — 행은 원래 배경으로 구간을 나눈다. */
 /* [F25] 카드 회차 레이어가 마감을 말할 때도 같은 저채도 규칙을 따른다 —
    행 전체가 아니라 회차 레이어만 낮춘다(카드 본문은 여전히 선택 대상이다). */
 .kium-card-next[data-status="closed"] b{color:var(--muted)}
@@ -430,6 +437,9 @@ button.kium-pill-ses:focus-visible{border-color:currentColor;box-shadow:var(--sh
   .kium-schedbox-body{transition:none}
   .kium-schedbox-toggle svg{transition:none}
 }
+/* [F28] 카드가 1장이면 1fr 이 남은 폭을 전부 먹어 다른 상태와 폭이 달라진다.
+   .kium-strip.is-single 선례와 같은 처리를 마크업 변경 없이 한다 — 폭 고정 + 좌측 정렬. */
+.kium-ustrip-cell:only-child{max-width:212px}
 .kium-ustrip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(212px,1fr);gap:10px;
   overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;
   -webkit-overflow-scrolling:touch}
